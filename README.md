@@ -76,35 +76,54 @@ involved he is likely to to provide consent on behalf of the Enduser.
 
 A simple introduction to OAuth
 ==============================
-We are all familiar with Google, Facebook and many others being able to act as "identity provider" (abbreviated as IDP). 
-Many websites use this to simply account management. This is convenient both for the website itself as it reduces support,
-and for the user because there are less credentials to manage. You will see this as the 'Login with Google' option on websites and apps.
+Most of us are familiar with Google, Facebook and many others being able to
+act as "identity provider" (abbreviated as IDP).  Many websites use this to
+simply account management. This is convenient both for the website itself:
+less account support, as well as for the user: less credentials to manage. You
+will recognise this from the 'Login with Google', and others, option on
+websites and apps.
 
-The technology for this is called OAuth(2). There is also OpenID (Connect) which is a thin layer with functionality on top.
-Websites as in this example are called are called 'client' or 'app' in OAuth terminology. OAuth also supports granting clients 
-access to data of the user that is kept at the IDP. Let's take Gmail as example, and some hypothetical web portal W that offers to help you manage your e-mail. 
-You login at W using your Google account. You get redirected to a dialog at google.com where you are notified 
-that W wants full access to your mailbox. This is called the consent screen. If you trust W with your e-mail, and you trust 
-Google to give access to W but not others, you cross your fingers and confirm you consent that W may access your mailbox until you revoke that access.
+The technology for this is called OAuth(2). Sometimes you'll see it mentioned
+as OpenID Connect, which is a thin layer with functionality on top of OAuth2.
+In OAuth terminology, websites as in the example above are called are called
+'client' or 'app'.  OAuth can do more than efficient account management. It
+supports granting clients access to data that is kept at the IDP. Let's take
+Gmail as example, and some hypothetical web portal W that offers to help you
+manage your e-mail.  You login at W using your Google account. You get
+redirected to a dialog at google.com where you are notified that W wants full
+access to your mailbox. This is called the consent screen. If you trust W with
+your e-mail, and you trust Google to give access to W but not others, you
+cross your fingers and confirm you consent that W may access your mailbox
+until you revoke that access. Now, W can manage your mail for you.
 
 OAuth and Axis Cloud Connect
 ----------------------------
-Axis Cloud Connect also uses OAuth2 technology. The purpose is not simplified account management but just to allow the 
-owner of devices to provide consent on specific clients accessing these devices. How it works is that a Client-application (here: P)
-registers as client with Axis Cloud Connect to obtain a client ID and some secret value. It then assembles a url that needs to be passed to the owner of 
-the devices. In this is done by e-mail in this demonstrator. The owner follows the url to axis.com and provides consent on P 
-accessing the devices. A notification of this consent is sent by axis.com to P on a callback URL that was provided during registration. 
-The details inside that notification are stored by P so that it can access devices at a later time.
+Axis Cloud Connect also uses OAuth2 technology. The purpose is not simplified
+account management but just to allow the owner of devices to provide consent
+on specific clients accessing these devices. How it works is that an
+application (here: P) registers as client with Axis Cloud Connect. This is a
+one-time effort. It obtains a client ID and some secret value. To get access
+to devices, it then assembles a url that needs to be passed to the owner of
+the devices. This is done by e-mail in this demonstrator. The owner follows
+the url to axis.com and provides consent on P accessing devices in a specific
+'organisation'. A notification of this consent is sent by axis.com to P on a
+callback URL that was provided during registration.  The details inside that
+notification are stored by P so that it can access devices at a later time.
 
-To keep this all safe and secure OAuth2 has some details which make the actual mechanics a bit hard to grasp initially. 
-But the overall process and purpose is as simple as explained above.
+To keep this all safe and secure OAuth2 has some details which make the actual
+mechanics a bit hard to grasp initially.  But the overall process and purpose
+is as simple as explained above.
 
 Acting on behalf of the enduser
 -------------------------------
-In professional video security, it is often the case that an Installer or System Integrator (SI) takes care of system setup on behalf of an enduser. 
-When the software platform - P - is about to get involved, it is actually this SI that grants access to P. For this to work, the owner must invite the 
-SI as administrator in his Axis Cloud Connect 'organisation'. From then on, the SI is able to consent to the use of others using the devices, \
-using his MyAxis account and not the one of the owner.
+In professional video security, it is often the case that an Installer or
+System Integrator (SI) takes care of system setup on behalf of an enduser.
+When the software platform - P - is about to get involved, it is actually this
+SI that grants access to P. For this to work, the owner must invite the SI as
+administrator in his Axis Cloud Connect 'organisation'. This is done in the
+'My systems' portal. From then on, the SI is able to consent to the use of
+others using the devices, using _his_ MyAxis account and not the account of the
+owner.
 
 Implementation notes
 ====================
