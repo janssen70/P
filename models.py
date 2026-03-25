@@ -6,6 +6,8 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from authlib.integrations.requests_client import OAuth2Session
+
 from utilities.core.oauth2 import TokenError
 
 from .oauth import get_credentials
@@ -13,8 +15,9 @@ from .utils import epoch_to_datetime, get_user_enduser_emails
 
 class EndUser(models.Model):
    """
-   Represents an end user who owns devices.
-   May or may not have a portal account.
+   Represents an end user who owns devices. May or may not have a portal account.
+
+   The use of portal_account isn't well-defined in this demonstrator.
    """
    email = models.EmailField(unique=True)
    portal_account = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True,
@@ -26,12 +29,11 @@ class EndUser(models.Model):
    @classmethod
    def for_user(cls, user):
       """
-      Get or create the EndUser matching user.email.
+      Class-method to get or create an EndUser matching user.email.
 
       Sets portal_account only on creation; falls back without it if the
-      OneToOneField is already taken by another EndUser record. Can be
-      ignored. The use with portal_account isn't well-defined in this
-      demonstrator.
+      OneToOneField is already taken by another EndUser record. This detail can be
+      ignored for now.
       """
       from django.db import IntegrityError, transaction
       try:
@@ -45,6 +47,17 @@ class EndUser(models.Model):
       return enduser
 
 class Service(models.Model):
+   """
+   This model represents an agreed Service. It relates to a specific <end_user>,
+   the consent request is sent to that e-mail address. The token that is
+   received in return gets saved in <oauth_token>. That token determines which
+   organisation it is that the access works on
+
+   The use of the employee field isn´t well-defined in this demonstrator. All
+   users with P.view_service permission are allowed to view all services. In
+   the live demo this is done by assigning a user to a specific group with
+   that permission.
+   """
    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
    employee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                                 on_delete=models.SET_NULL, related_name="services")
@@ -69,7 +82,7 @@ class Service(models.Model):
       """
       if user.has_perm('P.change_service') or self.end_user.email in get_user_enduser_emails(user):
          return True
-      # Employee marked at the service can also revoke
+      # The employee marked at the service can also revoke
       return user.has_perm('P.view_service') and self.employee == user
 
    def can_delete(self, user):
@@ -110,8 +123,8 @@ class OAuthToken(models.Model):
 
    def mark_expired(self):
       """
-      Force the token to appear expired so that
-      refresh_token_if_needed will trigger a refresh.
+      Force the token to appear expired so that get_token() will try obtain a
+      fresh one
       """
       from django.utils import timezone
       self.expires_at = timezone.now()
@@ -131,7 +144,6 @@ class OAuthToken(models.Model):
             self.save(update_fields = ['revoked'])
          raise TokenError('No refresh token')
 
-      from authlib.integrations.requests_client import OAuth2Session
       client_id, client_secret, token_endpoint = get_credentials()
       session = OAuth2Session(client_id, client_secret, token=self.as_authlib_token())
       try:
@@ -150,8 +162,17 @@ class OAuthToken(models.Model):
 
 class ConsentRequest(models.Model):
    """
-   Tracks consent email state per service.
-   Prevents duplicate emails, enables resend control.
+   Tracks consent email state per service. Prevents duplicate emails, enables
+   resend control.
+
+   <token> here is the email link token, NOT the OAuth token. The link in the
+   e-mail will first land the user on our website. It is confusing/feels
+   suspicious when the e-mail links to axis directly or that our website
+   immediately redirects.
+
+   The end-user first lands on a page which confirms what is going to happen,
+   there a button needs to be present to commence consent-process. See
+   views.oauth_start()
    """
    service = models.OneToOneField(
        Service,
@@ -160,7 +181,6 @@ class ConsentRequest(models.Model):
    )
    requested_at = models.DateTimeField(null=True, blank=True)
    token = models.UUIDField(default=uuid.uuid4, unique=True)
-   # token here is the email link token, NOT the OAuth token
 
    def is_pending(self):
       return self.requested_at is not None and self.service.needs_consent

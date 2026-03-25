@@ -39,6 +39,9 @@ ACC_GRAPHQL_API_KEY = require_env('ACC_GRAPHQL_API_KEY')
 # -------------------------------------------------------------------------------
 
 class ServiceAdminRequired(PermissionRequiredMixin):
+   """
+   For permission check in the Service Provider-related class-based views
+   """
    permission_required = 'P.view_service'
 
 # -------------------------------------------------------------------------------
@@ -52,7 +55,7 @@ def Log(class_, request, string):
 
 class P_OAuth2Authenticator(Authenticator):
    """
-   OAuth2-based authenticator that leans on the OAuthToken model of this
+   OAuth2-based authenticator that builds on the OAuthToken model of this
    module
    """
 
@@ -67,7 +70,8 @@ class P_OAuth2Authenticator(Authenticator):
 
 def list_devices(service: Union[Service, str]) -> dict:
    """
-   List the devices associated with Service <service>
+   Determine organisation arn of the Service and run GraphQL query to obtain
+   the devices.
    """
    if not isinstance(service, Service):
       service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service)
@@ -84,6 +88,9 @@ def list_devices(service: Union[Service, str]) -> dict:
 
 def do_revoke(service: Service, user: User) -> Tuple[bool, str]:
    """
+   Signal to the identity provider that a certain token is not required
+   anymore.
+
    Returns result + message_if_result_false
    """
    if (token := service.oauth_token):
@@ -146,6 +153,10 @@ class ServicesOverview(ServiceAdminRequired, TemplateView):
 
 
 class Services_ListJson(ServiceAdminRequired, SearchableListView):
+   """
+   Following a pattern from other code. Search functionality isn't very
+   uisefull with just a handfull of items in the list
+   """
 
    def get_form(self):
       return ServiceSearchForm(self.request, self.request.GET)
@@ -224,7 +235,7 @@ def oauth_start(request, consent_token):
    The consent-email to an Enduser contains a link to this view. It shows a
    page with some explanation and a button that will started the oath
    process. This page allows the enduser to first visually confirm it's
-   really the expected service provice.
+   really the expected service provider he is dealing with.
    """
    consent_req = get_object_or_404(ConsentRequest.objects.select_related('service'), token = consent_token)
 
@@ -236,9 +247,9 @@ def oauth_start(request, consent_token):
    # Store the consent_token in session so callback can find the service
    request.session['oauth_consent_token'] = str(consent_req.token)
 
-   # Obtain the url and save the state in the session (authorize_redirect()
-   # normally takes care of that, here we don't want to redirect but show a
-   # page instead.
+   # Obtain the url and save the state in the sessioni. (authorize_redirect()
+   # normally takes care of that, here we don't want to immediately redirect
+   # but show a page instead.
    rv = client.create_authorization_url(callback_url)
    client.save_authorize_data(request, redirect_uri=callback_url, **rv)
 
@@ -255,8 +266,7 @@ def oauth_callback(request):
    Manufacturer redirects back here after end user consents.
    Exchange code for token, store against the service record.
    """
-   consent_token = request.session.pop('oauth_consent_token', None)
-   if not consent_token:
+   if not (consent_token := request.session.pop('oauth_consent_token', None)):
       return HttpResponseBadRequest('Missing session state.')
 
    consent_req = get_object_or_404(ConsentRequest, token = consent_token)
@@ -303,8 +313,10 @@ def service_page(request, service_id):
    View a single service
 
    An Employee gets into this view by clicking a Service item in the overview
-   page (ServicesOverview), if consent has been provided. If consent is
-   missing: show warning + send/resend button.
+   page (ServicesOverview).
+
+   If consent has been provided: load the video functionality
+   If consent is missing: show warning + send/resend button
    """
 
    def consent_page(service: Service, msg: str = None):
@@ -347,20 +359,18 @@ def service_page(request, service_id):
 @permission_required('P.view_service')
 def service_list_devices(request, service_id):
    """
-   Determine organisation arn of the Service and run GraphQL query to obtain
-   the devices.
+   List the devices associated with <service_id>
    """
    return JsonResponse({'data': list_devices(service_id)})
 
 @permission_required('P.view_service')
 def service_token(request, service_id):
    """
-   Get a token, used by client to initiate webrtc locally
+   Get a token, used by clientside logic to initiate webrtc in the browser
    """
    service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service_id)
    authenticator = P_OAuth2Authenticator(service.oauth_token)
-   token = authenticator.token()
-   return HttpResponse(content = token, status = 200)
+   return HttpResponse(content = authenticator.token(), status = 200)
 
 @permission_required('P.view_service')
 def send_consent_email(request, service_id):
@@ -419,7 +429,7 @@ MY_SERVICES_OVERVIEW_TRANSLATIONS = {
 class MyServicesOverview(LoginRequiredMixin, TemplateView):
    """
    A page where the enduser can have a look at his services and consent
-   status
+   status, and revoke consent.
    """
 
    def get_template_names(self):
@@ -442,6 +452,10 @@ class MyServicesOverview(LoginRequiredMixin, TemplateView):
       return context
 
 class MyServices_ListJson(LoginRequiredMixin, SearchableListView):
+   """
+   See Services_ListJson, the AI wasn't clever enough to share code
+   TODO: Share code with the other function
+   """
 
    def get_form(self):
       return ServiceSearchForm(self.request, self.request.GET)

@@ -148,4 +148,23 @@ and database and possibly independently running instance. The web framework on
 which this demo runs supports that, however new tenants can not be managed
 from inside the demo.
 
+Code layout
+-----------
+File structure mostly follows Django conventions. A short overview of the most
+relevant files in this repository.
+
+| Path | Description |
+|------|-------------|
+| urls.py | Binds urls to views |
+| models.py | Defines the database models |
+| views.py | Defines the logic behind the various urls |
+| oauth.py | authlib-based OAuth helper functions & allauh->authlib glue logic |
+| serviceclient.py | Classes to interact with Axis Cloud Connect |
+| admin.py | Glue logic for use in Django admin pages |
+| management/commands | Maintenance commands to run from commandline |
+| templates/P | Templates to render HTML pages for use in the views |
+| js/my_services_overview.js | Client-side code for list of services for Enduser |
+| js/service_page.js | Client-side code for a single service: devicelist and video |
+| js/services_overview.js | Client-side code for list of services for Service Provider |
+| js/webrtc.js | Client-side helper class to run webrtc negotation |
 

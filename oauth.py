@@ -3,12 +3,14 @@ OAuth helper functions or the P module. authlib is used as second OAuth
 implementation because django-allauth isn't useable for obtaining consent from
 someone who is not a user of the platform. Still, authlib is initialised based
 on the client data from the allauth administration, so that there is only a
-single source for this information
+single source for OAuth-client definitions
 """
 import requests
 
 from authlib.integrations.requests_client import OAuth2Session
 from authlib.integrations.django_client import OAuth
+from allauth.socialaccount.models import SocialApp
+
 from django.conf import settings
 
 from constance import config
@@ -27,8 +29,6 @@ def _ensure_registered():
    global _initialized
    if _initialized:
       return
-
-   from allauth.socialaccount.models import SocialApp
 
    app_name = config.MANUFACTURER_SOCIALAPP_NAME
    try:
@@ -68,12 +68,10 @@ def get_client():
 def get_credentials():
    """
    Return (client_id, client_secret, token_endpoint) for use in standalone
-   OAuth2Session instances (e.g., API calls with token refresh).
+   authlib OAuth2Session instances (e.g., API calls with token refresh).
    Calls _ensure_registered() to guarantee token_endpoint is populated.
    """
    _ensure_registered()
-   from allauth.socialaccount.models import SocialApp
-
    social_app = SocialApp.objects.get(name = config.MANUFACTURER_SOCIALAPP_NAME)
    return social_app.client_id, social_app.secret, social_app.settings['token_endpoint']
 
@@ -85,8 +83,6 @@ def revoke_token(token_value):
    Raises on HTTP error — caller should decide whether to swallow it.
    """
    _ensure_registered()
-   from allauth.socialaccount.models import SocialApp
-
    social_app = SocialApp.objects.get(name = config.MANUFACTURER_SOCIALAPP_NAME)
    endpoint = social_app.settings.get('revocation_endpoint')
    if not endpoint:
@@ -100,3 +96,5 @@ def revoke_token(token_value):
    )
    resp.raise_for_status()
    return True
+
+# vim: set nowrap sw=3 sts=3 et fdm=marker:
