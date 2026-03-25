@@ -19,7 +19,7 @@ Roles
 
 | Role | Description |
 | ---- | ----------- |
-| Service Provider | Operates a service that requires device access, for example: live observation of cameras or automated collection of counting data |
+| Service Provider | Operates a service that requires device access, for example: live observation of cameras or automated collection of counting data. The Service Provider typically uses a software for this, which in this overview is called 'Platform' |
 | Platform | The software that performs the actual interaction with cloud connected cameras. Can be a cloud application itself or an on-prem installation at the Service Provider |
 | Platform DevOps | In case of a cloud Platform, the party that takes care of running it. Included in this list because we can assume this party has full access to the tokens stored in the Platform. |
 | System Integrator | A party that installs devices and configures software system on behalf of the Enduser |
