@@ -81,7 +81,7 @@ function register_service_contextmenu(trigger_def)
                               [],
                               function(response)
                               {
-                                 var updated = preprocess_data(response.data)[0];
+                                 var updated = preprocess_data([response[0]])[0];
                                  row.data(updated).draw(false);
                               }
                            );
