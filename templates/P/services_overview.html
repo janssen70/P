@@ -1,0 +1,62 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Services" %}{% endblock %}
+{% block maintitle %}{% trans "Services" %}{% endblock %}
+{% block subtitle %}{% endblock %}
+
+{% block extrahead %}
+  {% include 'purecss_grids.html' %}
+  {% include 'datatables.html' %}
+  {% include 'jquery-contextmenu.html' %}
+  <link rel="stylesheet" href="/css/P/P.css">
+{% endblock %}
+
+{% block content %}
+
+{{ translations | json_script:"translations" }}
+{% get_current_language as LANGUAGE_CODE %}
+
+<br>
+
+<div id="my_dialog" class="ui-helper-hidden"></div>
+
+{% if not perms.P.view_service %}
+  {% trans "This page is only available to administrators." %}
+{% else %}
+  <div>
+    <button id="add_service" data-url="{% url 'p-service-add' %}" title="{% trans 'Add a service to known endusers on their behalf' %}" class="pure-button">{% trans "Add service" %}</button>
+    <button id="add_enduser" data-url="{% url 'p-enduser-add' %}" title="{% trans 'Add endusers on their behalf' %}" class="pure-button">{% trans "Add end user" %}</button>
+    <button id="search_expander" data-id="period_select_panel" title="{% trans 'Search a service in the list' %}" class="pure-button collapsible">{% trans "Search" %}...</button>
+  </div>
+  <br>
+  <br>
+  <div id="period_select_panel" class="collapsible_content">
+    {% include 'default_form_dynamic_errors.html' %}
+  </div>
+  <div id="operation_result" class="messages idle_message"></div><br>
+
+  <table id="service_list" data-url="{% url 'p-services-list-json' %}" class="display hidden compact url_linking_tableclass row-border">
+    <thead>
+      <tr>
+        <th>{% trans 'Employee' %}</th>
+        <th>{% trans 'End user' %}</th>
+        <th>{% trans 'Description' %}</th>
+        <th>{% trans 'Created' %}</th>
+        <th>{% trans 'Consent' %}</th>
+        <th></th>
+      </tr>
+    </thead>
+  </table>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
+  <script type="text/javascript" src="/js/enable_datepicker.js" defer></script>
+  <script type="text/javascript" src="/js/collapsible.js" defer></script>
+  <script type="text/javascript" src="/js/P/services_overview.js" defer></script>
+{% endblock %}
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}

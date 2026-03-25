@@ -1,0 +1,29 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if section.site_name %}{{ section.site_name | safe }}{% else %}{{ catagory.site_name | safe }}{% endif %}{% endblock %}
+{% block maintitle %}{% trans 'Service Platform' %}{% endblock %}
+{% block subtitle %}{{ section.subtitle }}{% endblock %}
+
+{% block extrahead %}
+  {% include 'fontawesome.html' %}
+  {% include 'purecss_grids.html' %}
+{% endblock %}
+
+{% block content %}
+<br>
+
+{% get_current_language as LANGUAGE_CODE %}
+<!-- Current language: {{ LANGUAGE_CODE }} -->
+
+  {% include 'usercontent/embedded_section_view.html' %}
+
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js"></script>
+  <script type="text/javascript" src="/js/site.js"></script>
+  {% include 'usercontent/editing_includes.html' %}
+  {% if not user_can_edit %}
+     {% include 'dropzone.html' %}
+  {% endif %}
+{% endblock %}
+
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}

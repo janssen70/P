@@ -1,0 +1,76 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if section.site_name %}{{ section.site_name | safe }}{% else %}{{ catagory.site_name | safe }}{% endif %}{% endblock %}
+{% block maintitle %}{% trans 'Service Platform' %}{% endblock %}
+{% block subtitle %}{{ section.subtitle }}{% endblock %}
+
+{% block extrahead %}
+  {% include 'fontawesome.html' %}
+  {% include 'purecss_grids.html' %}
+{% endblock %}
+
+{% block content %}
+<br>
+
+{% get_current_language as LANGUAGE_CODE %}
+<!-- Current language: {{ LANGUAGE_CODE }} -->
+
+  {% include 'usercontent/embedded_section_view.html' %}
+
+  <br>
+
+  {% if message %}
+  <div class="messages error_place">{{ message }}</div>
+  <br>
+  {% endif %}
+
+  <table class="pure-table pure-table-horizontal">
+    <tbody>
+      <tr>
+        <th>{% trans "Employee" %}</th>
+        <td>{{ service.employee }}</td>
+      </tr>
+      <tr>
+        <th>{% trans "End user" %}</th>
+        <td>{{ service.end_user }}</td>
+      </tr>
+      {% if service.description %}
+      <tr>
+        <th>{% trans "Description" %}</th>
+        <td>{{ service.description }}</td>
+      </tr>
+      {% endif %}
+      <tr>
+        <th>{% trans "Created" %}</th>
+        <td>{{ service.created_at }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <br>
+
+  {% if consent_request.is_pending %}
+  <p>{% trans "A consent request has already been sent." %} ({{ consent_request.requested_at }})</p>
+  {% endif %}
+
+  <form method="post" action="{% url 'p-send-consent-email' service.id %}">
+    {% csrf_token %}
+    <button type="submit" class="pure-button pure-button-primary">
+      {% if consent_request.is_pending %}
+        {% trans "Resend consent request" %}
+      {% else %}
+        {% trans "Send consent request" %}
+      {% endif %}
+    </button>
+  </form>
+
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
+  <script type="text/javascript" src="/js/site.js" defer></script>
+  <script type="text/javascript" src="/js/link_buttons.js" defer></script>
+  {% include 'usercontent/editing_includes.html' %}
+  {% if not user_can_edit %}
+     {% include 'dropzone.html' %}
+  {% endif %}
+{% endblock %}
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}

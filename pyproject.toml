@@ -1,0 +1,19 @@
+[project]
+name = "P"
+version = "0.0.1"
+
+[tool.autopep8]
+ignore = "E121,E224,E242,E251,E302,E305"
+indent_size = 3
+in_place = true
+recurse = true
+max_line_length = 130
+
+[tool.pylint.basic]
+good-names=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","y","pk","Log","fp","db"]
+indent-after-paren=3
+indent-string="   "
+max-line-length=255
+disable="no-else-return"
+ignore="migrations"
+django-settings-module="the_site.settings"

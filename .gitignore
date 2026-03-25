@@ -1,0 +1,14 @@
+.coverage
+*.db*
+*.pyc
+*.pyo
+*.swp
+*.swo
+*~
+__pycache__
+
+# Migrations are run seperately on the production system
+migrations
+
+tags
+gitleaks-report.json

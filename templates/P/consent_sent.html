@@ -1,0 +1,66 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if section.site_name %}{{ section.site_name | safe }}{% else %}{{ catagory.site_name | safe }}{% endif %}{% endblock %}
+{% block maintitle %}{% trans 'Service Platform' %}{% endblock %}
+{% block subtitle %}{{ section.subtitle }}{% endblock %}
+
+{% block extrahead %}
+  {% include 'fontawesome.html' %}
+  {% include 'purecss_grids.html' %}
+{% endblock %}
+
+{% block content %}
+<br>
+
+{% get_current_language as LANGUAGE_CODE %}
+<!-- Current language: {{ LANGUAGE_CODE }} -->
+
+  {% include 'usercontent/embedded_section_view.html' %}
+
+  <br>
+
+  <div class="messages success">
+    {% blocktrans with email=service.end_user.email %}
+      Consent request sent to {{ email }}.
+    {% endblocktrans %}
+    ({{ consent_request.requested_at }})
+  </div>
+
+  <br>
+
+  <table class="pure-table pure-table-horizontal">
+    <tbody>
+      <tr>
+        <th>{% trans "Employee" %}</th>
+        <td>{{ service.employee }}</td>
+      </tr>
+      <tr>
+        <th>{% trans "End user" %}</th>
+        <td>{{ service.end_user }}</td>
+      </tr>
+      {% if service.description %}
+      <tr>
+        <th>{% trans "Description" %}</th>
+        <td>{{ service.description }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <br>
+
+  <a href="{% url 'p-service-view' service.id %}" class="pure-button">
+    {% trans "Back to service" %}
+  </a>
+
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
+  <script type="text/javascript" src="/js/site.js" defer></script>
+  <script type="text/javascript" src="/js/link_buttons.js" defer></script>
+  {% include 'usercontent/editing_includes.html' %}
+  {% if not user_can_edit %}
+     {% include 'dropzone.html' %}
+  {% endif %}
+
+{% endblock %}
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}

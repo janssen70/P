@@ -1,0 +1,48 @@
+repos:
+- repo: https://github.com/hhatto/autopep8
+  rev: v2.3.2
+  hooks:
+  -   id: autopep8
+- repo: local
+  hooks:
+  - id: forbid_prints
+    name: Check for leftover print statements.
+    types: [python]
+    entry: "print\\s*\\("
+    language: pygrep
+- repo: https://github.com/pycqa/bandit
+  rev: 1.8.3
+  hooks:
+  - id: bandit
+    name: bandit
+    description: 'Bandit is a tool for finding common security issues in Python code'
+    entry: bandit
+    language: python
+    language_version: python3
+    types: [python]
+    require_serial: true
+    args: ["--severity-level=medium"]
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.24.2
+  hooks:
+  - id: gitleaks
+    args: [
+       "--report-format=json",
+       "--report-path=gitleaks-report.json",
+       "--verbose"
+    ]
+# This has some dependencies, needs active venv, PYTHONPATH and SECRET_KEY
+- repo: local
+  hooks:
+  - id: pylint-django
+    name: pylint
+    entry: pylint
+    language: system
+    types: [python]
+    args: [
+       "--load-plugins=pylint_django",
+       "-rn",
+       "-sn",
+       "-E"
+    ]
+

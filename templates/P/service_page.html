@@ -1,0 +1,50 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if section.site_name %}{{ section.site_name | safe }}{% else %}{{ catagory.site_name | safe }}{% endif %}{% endblock %}
+{% block maintitle %}{% trans 'Service Platform' %}{% endblock %}
+{% block subtitle %}{{ section.subtitle }}{% endblock %}
+
+{% block extrahead %}
+  {% include 'fontawesome.html' %}
+  {% include 'purecss_grids.html' %}
+  <link rel="stylesheet" href="/css/P/P.css">
+{% endblock %}
+
+{% block content %}
+<br>
+
+{% get_current_language as LANGUAGE_CODE %}
+<!-- Current language: {{ LANGUAGE_CODE }} -->
+
+  {% include 'usercontent/embedded_section_view.html' %}
+
+  {% if error %}
+     <div class="error">error</div>
+  {% else %}
+     <div id="device_list" data-org="{{ org_id }}" data-service="{{ service.id }}">
+        <div class="pure-g">
+        {% for dev in devices %}
+             <div class="pure-u-1-1 pure-u-md-1-4">
+                <button data-cam="{{dev.serial}}" class="pure-button cam-button">{{ dev.model.name }} - {{ dev.firmware.information.version }}</button>
+             </div>
+        {% endfor %}
+        </div>
+     </div>
+     <br>
+     <br>
+     <video id="remoteVideo" playsinline autoplay></div>
+  {% endif %}
+
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
+  <script type="text/javascript" src="/js/site.js" defer></script>
+  <script type="text/javascript" src="/js/link_buttons.js" defer></script>
+  <script type="text/javascript" src="/js/P/webrtc.js"></script>
+  <script type="text/javascript" src="/js/P/service_page.js"></script>
+  {% include 'usercontent/editing_includes.html' %}
+  {% if not user_can_edit %}
+     {% include 'dropzone.html' %}
+  {% endif %}
+{% endblock %}
+
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}

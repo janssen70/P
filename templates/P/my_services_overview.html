@@ -1,0 +1,63 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if section.site_name %}{{ section.site_name | safe }}{% else %}{{ catagory.site_name | safe }}{% endif %}{% endblock %}
+{% block maintitle %}{% trans 'Service Platform' %}{% endblock %}
+{% block subtitle %}{{ section.subtitle }}{% endblock %}
+
+{% block extrahead %}
+  {% include 'purecss_grids.html' %}
+  {% include 'datatables.html' %}
+  {% include 'fontawesome.html' %}
+  {% include 'jquery-contextmenu.html' %}
+  <link rel="stylesheet" href="/css/P/P.css">
+{% endblock %}
+
+{% block content %}
+<div id="my_dialog" class="ui-helper-hidden"></div>
+
+{{ translations | json_script:"translations" }}
+{% get_current_language as LANGUAGE_CODE %}
+<!-- Current language: {{ LANGUAGE_CODE }} -->
+
+{% include 'usercontent/embedded_section_view.html' %}
+
+<br>
+
+<div>
+  <button id="add_service" data-url="{% url 'p-my-service-add' %}" title="{% trans 'Add a new service' %}" class="pure-button">{% trans "Add service" %}</button>
+  <button id="search_expander" data-id="period_select_panel" title="{% trans 'Search a service in the list' %}" class="pure-button collapsible">{% trans "Search" %}...</button>
+</div>
+<br>
+<br>
+<div id="period_select_panel" class="collapsible_content">
+  {% include 'default_form_dynamic_errors.html' %}
+</div>
+<div id="operation_result" class="messages idle_message"></div><br>
+
+<table id="service_list" data-url="{% url 'p-my-services-list-json' %}" class="display hidden compact row-border">
+  <thead>
+    <tr>
+      <th>{% trans 'Description' %}</th>
+      <th>{% trans 'Created' %}</th>
+      <th>{% trans 'Consent' %}</th>
+      <th></th>
+    </tr>
+  </thead>
+</table>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
+  <script type="text/javascript" src="/js/site.js" defer></script>
+  <script type="text/javascript" src="/js/enable_datepicker.js" defer></script>
+  <script type="text/javascript" src="/js/collapsible.js" defer></script>
+  <script type="text/javascript" src="/js/P/my_services_overview.js" defer></script>
+  {% include 'usercontent/editing_includes.html' %}
+  {% if not user_can_edit %}
+     {% include 'dropzone.html' %}
+  {% endif %}
+{% endblock %}
+
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}

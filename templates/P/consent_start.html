@@ -1,0 +1,46 @@
+{% extends "site_templates/base.html" %}
+{% load i18n %}
+
+{% block title %}{% if section.site_name %}{{ section.site_name | safe }}{% else %}{{ catagory.site_name | safe }}{% endif %}{% endblock %}
+{% block maintitle %}{% trans 'Service Platform' %}{% endblock %}
+{% block subtitle %}{{ section.subtitle }}{% endblock %}
+
+{% block extrahead %}
+  {% include 'purecss_grids.html' %}
+  {% include 'datatables.html' %}
+  {% include 'fontawesome.html' %}
+  {% include 'jquery-contextmenu.html' %}
+  <link rel="stylesheet" href="/css/P/my_services_overview.css">
+{% endblock %}
+
+{% block content %}
+<div id="my_dialog" class="ui-helper-hidden"></div>
+
+{{ translations | json_script:"translations" }}
+{% get_current_language as LANGUAGE_CODE %}
+<!-- Current language: {{ LANGUAGE_CODE }} -->
+
+{% include 'usercontent/embedded_section_view.html' %}
+
+<br>
+
+<div>
+  <button id="start_oauth" my_content_url="{{ redirect_url }}" title="{% trans 'Start consent process' %}" class="pure-button button-primary">{% trans "Consent" %}</button>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
+  <script type="text/javascript" src="/js/site.js" defer></script>
+  <script type="text/javascript" src="/js/enable_datepicker.js" defer></script>
+  <script type="text/javascript" src="/js/collapsible.js" defer></script>
+  <script type="text/javascript" src="/js/link_buttons.js" defer></script>
+  <script type="text/javascript" src="/js/P/my_services_overview.js" defer></script>
+  {% include 'usercontent/editing_includes.html' %}
+  {% if not user_can_edit %}
+     {% include 'dropzone.html' %}
+  {% endif %}
+{% endblock %}
+
+{% comment %} vim: set nowrap sw=3 sts=3 et fdm=marker ft=django: {% endcomment %}
