@@ -8,6 +8,7 @@
 {% block extrahead %}
   {% include 'fontawesome.html' %}
   {% include 'purecss_grids.html' %}
+  <link rel="stylesheet" href="/css/P/messages.css">
   <link rel="stylesheet" href="/css/P/P.css">
 {% endblock %}
 
@@ -32,7 +33,7 @@
         </div>
      </div>
      <br>
-     <div id="error" class="error"></div>
+     <div id="message-area"></div>
      <br>
      <video id="remoteVideo" playsinline autoplay></div>
   {% endif %}
@@ -40,6 +41,7 @@
   <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
   <script type="text/javascript" src="/js/site.js" defer></script>
   <script type="text/javascript" src="/js/link_buttons.js" defer></script>
+  <script type="text/javascript" src="/js/P/messages.js"></script>
   <script type="text/javascript" src="/js/P/webrtc.js"></script>
   <script type="text/javascript" src="/js/P/service_page.js"></script>
   {% include 'usercontent/editing_includes.html' %}
