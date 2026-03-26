@@ -369,8 +369,8 @@ def service_page(request, service_id):
       'error': error,
       'service': service,
       'devices': devices,
-      'org_id':
-      service.oauth_token.extra_data['axis:organization'].split(':')[2]
+      'org_id': service.oauth_token.extra_data['axis:organization'].split(':')[2],
+      'client_id': get_client().client_id
    })
 
    return render(request, 'P/service_page.html', context)

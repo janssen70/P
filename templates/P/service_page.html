@@ -22,7 +22,7 @@
   {% if error %}
      <div class="error">error</div>
   {% else %}
-     <div id="device_list" data-org="{{ org_id }}" data-service="{{ service.id }}">
+     <div id="device_list" data-org="{{ org_id }}" data-client="{{ client_id }}" data-service="{{ service.id }}">
         <div class="pure-g">
         {% for dev in devices %}
              <div class="pure-u-1-1 pure-u-md-1-4">
@@ -32,6 +32,7 @@
         </div>
      </div>
      <br>
+     <div id="error" class="error"></div>
      <br>
      <video id="remoteVideo" playsinline autoplay></div>
   {% endif %}

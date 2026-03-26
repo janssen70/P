@@ -1,13 +1,16 @@
-// webrtc.js
-// Handles WebRTC connection logic on the service_page
+/* webrtc.js
+ * Handles WebRTC connection logic
+ */
 
 class WebRTCClient
 {
-   constructor(orgUuid, videoElementId)
+   constructor(orgUuid, clientId, videoElementId, onSuccess = null, onError = null)
    {
       this.orgUuid = orgUuid;
       this.videoElementId = videoElementId;
       this.clientId = 'cid_0EBA4F87';
+      this.onSuccess = onSuccess;
+      this.onError = onError;
       this._reset();
    }
 
@@ -40,7 +43,9 @@ class WebRTCClient
       }
       const videoEl = document.getElementById(this.videoElementId);
       if (videoEl)
+      {
          videoEl.srcObject = null;
+      }
       this._reset();
    }
 
@@ -57,7 +62,7 @@ class WebRTCClient
 
       if (!this.token || !this.targetId)
       {
-         console.error("Missing required parameters for WebRTC connection.");
+         console.error('Missing required parameters for WebRTC connection.');
          return;
       }
 
@@ -71,14 +76,14 @@ class WebRTCClient
       }
       catch (error)
       {
-         console.error("WebSocket connection error:", error);
+         console.error('WebSocket connection error:', error);
          return;
       }
 
       this.ws.onopen = () =>
       {
-         console.log("WebSocket connected.");
-         this.ws.send(JSON.stringify({ type: "hello", id: "" }));
+         console.log('WebSocket connected.');
+         this.ws.send(JSON.stringify({ type: 'hello', id: '' }));
       };
 
       this.ws.onmessage = async (message) =>
@@ -87,22 +92,22 @@ class WebRTCClient
          console.log('Got:');
          console.log(data);
 
-         if (data.type === "hello" && data.id)
+         if (data.type === 'hello' && data.id)
          {
             const initMsg = {
-               type: "initSession",
+               type: 'initSession',
                targetId: this.targetId,
                orgId: this.orgUuid,
                clientId: this.clientId,
                authorization: this.token,
                correlationId: this.correlationId,
                data: {
-                  apiVersion: "1.0",
-                  type: "request",
+                  apiVersion: '1.0',
+                  type: 'request',
                   sessionId: this.sessionId,
-                  method: "initSession",
+                  method: 'initSession',
                   params: {
-                     type: "live",
+                     type: 'live',
                      videoReceive: {
                         width: 640,
                         height: 480,
@@ -119,7 +124,7 @@ class WebRTCClient
             this.ws.send(JSON.stringify(initMsg));
          }
 
-         if (data.type === "initSession" && data.data?.method === "initSession")
+         if (data.type === 'initSession' && data.data?.method === 'initSession')
          {
             let iceServers = [];
             if (Array.isArray(data.turnServers))
@@ -143,6 +148,10 @@ class WebRTCClient
                {
                   console.log('Set ' + this.videoElementId + ' element');
                   document.getElementById(this.videoElementId).srcObject = event.streams[0];
+                  if (this.onSuccess)
+                  {
+                     this.onSuccess(this.targetId);
+                  }
                };
                this.pc.onicecandidate = (event) =>
                {
@@ -151,17 +160,17 @@ class WebRTCClient
                   {
                      console.log('Sending ICE Candidate request');
                      const iceMsg = {
-                        type: "signaling",
+                        type: 'signaling',
                         targetId: this.targetId,
                         orgId: this.orgUuid,
                         clientId: this.clientId,
                         authorization: this.token,
                         correlationId: this.correlationId,
                         data: {
-                           apiVersion: "1.0",
+                           apiVersion: '1.0',
                            sessionId: this.sessionId,
-                           method: "addIceCandidate",
-                           type: "request",
+                           method: 'addIceCandidate',
+                           type: 'request',
                            params: {
                               candidate: event.candidate.candidate,
                               sdpMLineIndex: event.candidate.sdpMLineIndex
@@ -176,30 +185,30 @@ class WebRTCClient
             }
          }
 
-         if (data.type === "signaling" && data.data?.method === "initSession" && data.data?.type === "response")
+         if (data.type === 'signaling' && data.data?.method === 'initSession' && data.data?.type === 'response')
          {
             console.log('Wait for setSdpOffer');
          }
 
-         if (data.type === "signaling" && data.data?.method === "setSdpOffer")
+         if (data.type === 'signaling' && data.data?.method === 'setSdpOffer')
          {
             const offerSDP = data.data.params.sdp;
             console.log('Got:');
             console.log(offerSDP);
-            await this.pc.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp: offerSDP }));
+            await this.pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offerSDP }));
             this.ws.send(JSON.stringify({
-               type: "signaling",
+               type: 'signaling',
                targetId: this.targetId,
                orgId: this.orgUuid,
                clientId: this.clientId,
                authorization: this.token,
                correlationId: this.correlationId,
                data: {
-                  apiVersion: "1.0",
-                  method: "setSdpOffer",
-                  type: "response",
+                  apiVersion: '1.0',
+                  method: 'setSdpOffer',
+                  type: 'response',
                   sessionId: this.sessionId,
-                  id: "1",
+                  id: '1',
                   data: {}
                }
             }));
@@ -208,45 +217,45 @@ class WebRTCClient
             console.log('Answering:');
             console.log(answer.sdp);
             this.ws.send(JSON.stringify({
-               type: "signaling",
+               type: 'signaling',
                targetId: this.targetId,
                orgId: this.orgUuid,
                clientId: this.clientId,
                authorization: this.token,
                correlationId: this.correlationId,
                data: {
-                  apiVersion: "1.0",
+                  apiVersion: '1.0',
                   sessionId: this.sessionId,
-                  type: "request",
-                  method: "setSdpAnswer",
+                  type: 'request',
+                  method: 'setSdpAnswer',
                   params: {
-                     type: "answer",
+                     type: 'answer',
                      sdp: answer.sdp
                   }
                }
             }));
          }
 
-         if (data.type === "signaling" && data.data?.method === "setSdpAnswer" && data.data?.type === "response")
+         if (data.type === 'signaling' && data.data?.method === 'setSdpAnswer' && data.data?.type === 'response')
          {
             console.log('Received SDP answer acknowledgement');
          }
 
-         if (data.type === "signaling" && data.data?.method === "addIceCandidate" && data.data?.type === "request")
+         if (data.type === 'signaling' && data.data?.method === 'addIceCandidate' && data.data?.type === 'request')
          {
             const candidate = new RTCIceCandidate(data.data.params);
             await this.pc.addIceCandidate(candidate);
             this.ws.send(JSON.stringify({
-               type: "signaling",
+               type: 'signaling',
                targetId: this.targetId,
                orgId: this.orgUuid,
                clientId: this.clientId,
                authorization: this.token,
                correlationId: this.correlationId,
                data: {
-                  apiVersion: "1.0",
-                  method: "addIceCandidate",
-                  type: "response",
+                  apiVersion: '1.0',
+                  method: 'addIceCandidate',
+                  type: 'response',
                   sessionId: this.sessionId,
                   context: data.data.context,
                   id: String(Date.now()),
@@ -255,13 +264,22 @@ class WebRTCClient
             }));
          }
 
-         if (data.type === "signaling" && data.data?.method === "addIceCandidate" && data.data?.type === "response")
+         if (data.type === 'signaling' && data.data?.method === 'addIceCandidate' && data.data?.type === 'response')
          {
             console.log('Received ICE candidate acknowledgement');
          }
+
+         if (data.type === 'error')
+         {
+            console.error('Server error:', data.code, data.reason);
+            if (this.onError)
+            {
+               this.onError(data.code, data.reason);
+            }
+         }
       };
 
-      this.ws.onerror = (err) => console.error("WebSocket error:", err);
+      this.ws.onerror = (err) => console.error('WebSocket error:', err);
    }
 }
 
