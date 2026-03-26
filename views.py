@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 from django.db.models import Q
+from authlib.integrations.django_client import OAuthError
 
 from utilities.core.logger import LOG_INFO
 from utilities.core.authenticator import Authenticator
@@ -234,8 +235,14 @@ def oauth_start(request, consent_token):
    """
    The consent-email to an Enduser contains a link to this view. It shows a
    page with some explanation and a button that will started the oath
-   process. This page allows the enduser to first visually confirm it's
-   really the expected service provider he is dealing with.
+   process.
+
+   The page serves two purposes:
+
+   - Set the 'oauth_consent_token' session state. Once done, we might redirect
+     as well directly to axis.com, but:
+   - By pausing on this page the enduser can visually confirm it's
+     really the expected service provider he is dealing with.
    """
    consent_req = get_object_or_404(ConsentRequest.objects.select_related('service'), token = consent_token)
 
@@ -244,10 +251,9 @@ def oauth_start(request, consent_token):
 
    client = get_client()
    callback_url = request.build_absolute_uri(reverse('p-oauth-callback'))
-   # Store the consent_token in session so callback can find the service
    request.session['oauth_consent_token'] = str(consent_req.token)
 
-   # Obtain the url and save the state in the sessioni. (authorize_redirect()
+   # Obtain the url and save the state in the session. (authorize_redirect()
    # normally takes care of that, here we don't want to immediately redirect
    # but show a page instead.
    rv = client.create_authorization_url(callback_url)
@@ -258,7 +264,11 @@ def oauth_start(request, consent_token):
        'description': consent_req.service.description,
        'redirect_url': rv['url']
    })
-   return render(request, 'P/consent_start.html', context)
+   r = render(request, 'P/consent_start.html', context)
+   r['Cache-Control'] = 'no-store, must-revalidate'
+   r['Pragma'] = 'no-cache'
+   r['Expires'] = '0'
+   return r
 
 
 def oauth_callback(request):
@@ -267,39 +277,44 @@ def oauth_callback(request):
    Exchange code for token, store against the service record.
    """
    if not (consent_token := request.session.pop('oauth_consent_token', None)):
-      return HttpResponseBadRequest('Missing session state.')
+      return HttpResponseBadRequest('Missing or already expired session state.')
 
    consent_req = get_object_or_404(ConsentRequest, token = consent_token)
    service = consent_req.service
 
    client = get_client()
-   # TODO: wrap in try/except and render a friendly error page on failure
-   token_data = client.authorize_access_token(request)
+   try:
+      token_data = client.authorize_access_token(request)
 
-   token_fields = {
-       'access_token': token_data['access_token'],
-       'refresh_token': token_data.get('refresh_token', ''),
-       'token_type': token_data.get('token_type', 'Bearer'),
-       'expires_at': epoch_to_datetime(token_data.get('expires_at')),
-       'id_token': token_data.get('id_token', ''),
-       'extra_data': token_data.get('userinfo', {}),
-       'revoked': False,
-   }
-   if service.oauth_token_id:
-      OAuthToken.objects.filter(pk = service.oauth_token_id).update(**token_fields)
-   else:
-      token = OAuthToken.objects.create(**token_fields)
-      service.oauth_token = token
-      service.save(update_fields = ['oauth_token'])
+      token_fields = {
+          'access_token': token_data['access_token'],
+          'refresh_token': token_data.get('refresh_token', ''),
+          'token_type': token_data.get('token_type', 'Bearer'),
+          'expires_at': epoch_to_datetime(token_data.get('expires_at')),
+          'id_token': token_data.get('id_token', ''),
+          'extra_data': token_data.get('userinfo', {}),
+          'revoked': False,
+      }
+      if service.oauth_token_id:
+         OAuthToken.objects.filter(pk = service.oauth_token_id).update(**token_fields)
+      else:
+         token = OAuthToken.objects.create(**token_fields)
+         service.oauth_token = token
+         service.save(update_fields = ['oauth_token'])
 
-   consent_req.delete()
-   context = embedded_section_view(request, 'embedded', 'p-consent-success')
-   context.update({
-       'service': service,
-       'debug_data': token_data['userinfo']
-   })
+      consent_req.delete()
+      context = embedded_section_view(request, 'embedded', 'p-consent-success')
+      context.update({
+          'service': service,
+          'debug_data': token_data['userinfo']
+      })
 
-   return render(request, 'P/consent_success.html', context)
+      return render(request, 'P/consent_success.html', context)
+
+   except OAuthError as e:
+      context = embedded_section_view(request, 'embedded', 'p-error')
+      context['error'] = str(e)
+      return render(request, 'P/error.html', context)
 
 # ------------------------------------------------------------------------------
 #
@@ -327,7 +342,11 @@ def service_page(request, service_id):
          'consent_request': consent_req,
          'message': msg
       })
-      return render(request, 'P/awaiting_consent.html', context)
+      r = render(request, 'P/awaiting_consent.html', context)
+      r['Cache-Control'] = 'no-store, must-revalidate'
+      r['Pragma'] = 'no-cache'
+      r['Expires'] = '0'
+      return r
 
    # service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service_id, employee = request.user)
    service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service_id)

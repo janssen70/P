@@ -11,6 +11,16 @@ from tenants.command import TenantCommand
 from usercontent.utils import create_initial_sections
 
 
+EMBEDDED_PAGES = [
+   'p_landing_page',
+   'p_enduser_page',
+   'p-awaiting-consent',
+   'p-consent-sent',
+   'p-consent-success',
+   'p-consent-start',
+   'p-error'
+]
+
 class Command(TenantCommand):
    """
    This command checks that all required setup for the P module is in place.
@@ -27,8 +37,7 @@ class Command(TenantCommand):
       """
       """
       if (num_created := create_initial_sections('embedded',
-                                                 ['p_landing_page', 'p_enduser_page', 'p-awaiting-consent', 'p-consent-sent', 'p-consent-success', 'p-consent-start'],
-                                                 _('P Service platform default text'))
+            EMBEDDED_PAGES, _('P Service platform default text'))
           ):
          self.stdout.write(f'Created {num_created} embedded webpages')
 

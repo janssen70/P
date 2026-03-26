@@ -1,5 +1,5 @@
 This is a minimal app showing how to handle consent on an Axis Cloud Connect
-organisation when different parties are involved. It is the 'Platform' in the 
+organisation when different parties are involved. It is the 'Platform' in the
 drawing below, initially abbreviated to P, hence the name.
 
 Scope of this code
@@ -38,7 +38,7 @@ flowchart TD
    CC[fas:fa-cloud Axis cloud connect]
    P --- CC
    I --> | fas:fa-wrench Setup | CC
-   I --> | fas:fa-wrench Setup | P
+%%   I --> | fas:fa-wrench Setup | P
    CC --> C
    O --> |Consent| CC
    S --- |Video| P
@@ -47,7 +47,7 @@ flowchart TD
    D --- P
    D --- | Agreement | CC
    S ---- | Agreement | D
-   linkStyle 0,4 stroke:skyblue,stroke-width:4;
+   linkStyle 0,3 stroke:skyblue,stroke-width:4;
 ```
 
 In real life parties can take up more than one role at the same time,
