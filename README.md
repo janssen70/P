@@ -128,7 +128,7 @@ chose what the client can and can not do.
 
 OAuth and Axis Cloud Connect
 ----------------------------
-Axis Cloud Connect uses OAuth2 technology. The purpose is obviously not simplified
+Axis Cloud Connect uses OAuth 2.0 technology. The purpose is obviously not simplified
 account management but to provide consent on access to resources. So, where the 
 photo website example above still combined authentication and consent in one go, 
 this is not the case with Axis Cloud Connect.
@@ -136,7 +136,7 @@ this is not the case with Axis Cloud Connect.
 How it works is that an application (here: P) registers as client with Axis 
 Cloud Connect. This is a one-time effort. It obtains a client ID and some secret value. For P to get access
 to devices, it assembles a unique url that needs to be passed to the owner of
-the devices. This is done by e-mail in this demonstrator. The e-mail address is known from the agreement between the device owner and service provider that will use P. Upon receiving, the owner follows
+the devices. This is done by e-mail in this demonstrator. The e-mail address is known from the business agreement between the device owner and service provider that will use P. Upon receiving, the owner follows
 the url to P's portal or axis.com directly and provides consent on P accessing devices in a specific
 'organisation'. A notification of this consent is sent by axis.com to P on a
 callback URL that was provided during registration.  The details inside that
