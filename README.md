@@ -21,8 +21,8 @@ Roles
 | ---- | ----------- |
 | Service Provider | Operates a service that requires device access, for example: live observation of cameras or automated collection of counting data. The Service Provider typically uses a software for this, which in this overview is called 'Platform' |
 | Platform | The software that performs the actual interaction with cloud connected cameras. Can be a cloud application itself or an on-prem installation at the Service Provider |
-| Platform DevOps | In case of a cloud Platform, the party that takes care of running it. Included in this list because we can assume admins from this party have full access to the tokens stored in the Platform. |
-| System Integrator | A party that installs devices and configures software system on behalf of the Enduser |
+| Platform DevOps | In case of a cloud Platform, the party that takes care of running it. Included in this list because we can assume admins from this party have access to the tokens stored in the Platform. |
+| System Integrator | A party that installs devices and configures software system on behalf of the Enduser/Owner |
 | Enduser/Owner | Owns the devices and provides consent on the Cloud Connect platform for use of the cameras by others |
 
 This drawing shows the relations:
@@ -77,14 +77,14 @@ involved he is likely to to provide consent on behalf of the Enduser.
 An introduction to OAuth
 ========================
 Most of us are familiar with Google, Facebook and many others being able to
-act as "identity provider" (abbreviated as IDP).  Many websites use this to
-simply account management. This is convenient both for the website itself:
+act as "identity provider" (abbreviation: IDP).  Many websites use this to
+simply account management. That's convenient both for the website itself:
 less account support, as well as for the user: less credentials to manage. You
 will recognise this as the 'Login with Google' (or other providers) option on
 websites and in apps.
 
-The technology for this is called OAuth, now at version 2.0. However, OAuth 2.0 is fundamentally an 
-authorization delegation framework, not for authentication, although it's often used as
+The technology for this is called OAuth, now at version 2.0. However, OAuth is an
+authorization delegation framework. It's not an authentication mechanism, although it's often used as
 a foundation for it. The primary use cases it was designed to address are:
 
 1. Delegated API access
@@ -105,7 +105,7 @@ a foundation for it. The primary use cases it was designed to address are:
    
 4. Consent & Scoped access to resources
 
-   A resource owner (say, the owner of a Google mailbox or an Axis device) can grant fine-grained, revocable
+   A resource owner (say, the owner of a Google mailbox or an Axis device) can grant revocable
    permissions to another party to use or manage those resources. Scopes define what access
    is granted, and tokens can be time-limited. This is central to IoT, smart-home ecosystems and also Axis Cloud Connect.
    
@@ -115,13 +115,12 @@ a foundation for it. The primary use cases it was designed to address are:
    The device displays a code, and the user authorizes on a separate device with a full browser.
 
 
-Back to website example we started with, in OAuth terminology, such entitities are called
+Back to website example we started with. In OAuth terminology, such entitities are called
 'client' or 'app'. A website that will help you print your photos will need to act as OAuth client.
-The client needs access to the resource (your photos) and for that it needs to request that access. As 
+The client needs access to the resource (your photos on Google Photos) and for that it needs to request that access. As 
 owner of the resource you'll typically get a screen presented that lists the permissions 
-the client is interested in. This is called the consent screen. In case of Google Photo, when logging 
-in to the photo-print website, you'll get a consent screen from Google that will show you this client 
-wants to access your photos.
+the client needs. This is called the consent screen. In the example of Google Photos, when logging 
+in to the photo-print website using your Google account, you'll get a consent screen from Google that will show you this client wants to access your photos.
 
 If you trust the website with that, you'll select yes. Other providers may allow you to more specifically 
 chose what the client can and can not do.
@@ -162,10 +161,10 @@ Implementation notes
 This module is built using Python and the [Django](https://www.djangoproject.com/) web framework.
 It expects presence of other modules that in turn assume the presence of
 [django-allauth](https://docs.allauth.org/en/latest/). django-allauth strongly
-couples OAuth2 with website users and is less suitable to obtain
-consent from 3rd party individuals. This module therefore uses
+couples OAuth2 with authentication and is less suitable to obtain
+consent from 3rd party individuals. This module therefore also uses
 [Authlib](https://docs.authlib.org/en/latest/) but initialises Authlib using
-the OAuth-client details provided by the configured client in django-allauth.
+the OAuth-client details provided by the configured client in django-allauth.                                    
 
 This aspect is not crucial and can be ignored. A convenient side effect is
 that one need not setup a local enduser account on the demo instance. One can login
@@ -187,9 +186,9 @@ relevant files in this repository.
 
 | Path | Description |
 |------|-------------|
-| urls.py | Binds urls to views |
+| urls.py | Binds urls to views (=functions handling a url) |
 | models.py | Defines the database models |
-| views.py | Defines the logic behind the various urls |
+| views.py | Defines the logic behind each url |
 | oauth.py | authlib-based OAuth helper functions & allauh->authlib glue logic |
 | serviceclient.py | Classes to interact with Axis Cloud Connect |
 | admin.py | Glue logic for use in Django admin pages |
