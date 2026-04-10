@@ -85,7 +85,7 @@ websites and in apps.
 
 The technology for this is called OAuth, now at version 2.0. However, OAuth 2.0 is fundamentally an 
 authorization delegation framework, not for authentication, although it's often used as
-a foundation for it. Here are the primary use cases it was designed to address:
+a foundation for it. The primary use cases it was designed to address are:
 
 1. Delegated API access
 
