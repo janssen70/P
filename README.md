@@ -83,7 +83,7 @@ less account support, as well as for the user: less credentials to manage. You
 will recognise this as the 'Login with Google' (or other providers) option on
 websites and in apps.
 
-The technology for this is called OAuth 2.0. However, OAuth 2.0 is fundamentally an 
+The technology for this is called OAuth, now at version 2.0. However, OAuth 2.0 is fundamentally an 
 authorization delegation framework, not authentication, although it's often used as
 a foundation for it. Here are the primary use cases it was designed to address:
 
