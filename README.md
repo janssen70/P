@@ -80,37 +80,69 @@ Most of us are familiar with Google, Facebook and many others being able to
 act as "identity provider" (abbreviated as IDP).  Many websites use this to
 simply account management. This is convenient both for the website itself:
 less account support, as well as for the user: less credentials to manage. You
-will recognise this from the 'Login with Google', and others, option on
-websites and apps.
+will recognise this as the 'Login with Google', or others, -option on
+websites and in apps.
 
-The technology for this is called OAuth(2). Sometimes you'll see it mentioned
-as OpenID Connect, which is a thin layer with functionality on top of OAuth2.
-In OAuth terminology, websites as in the example above are called are called
-'client' or 'app'.  OAuth can do more than efficient account management. It
-supports granting clients access to data that is kept at the IDP. Let's take
-Gmail as example, and some hypothetical web portal W that offers to help you
-manage your e-mail.  You login at W using your Google account. You get
-redirected to a dialog at google.com where you are notified that W wants full
-access to your mailbox. This is called the consent screen. If you trust W with
-your e-mail, and you trust Google to give access to W but not others, you
-cross your fingers and confirm you consent that W may access your mailbox
-until you revoke that access. Now, W can manage your mail for you.
+The technology for this is called OAuth 2.0. However, OAuth 2.0 is fundamentally an 
+authorization delegation framework, not authentication, although it's often used as
+a foundation for it. Here are the primary use cases it was designed to address:
+
+1. Delegated API access
+
+   This is the core usecase. A user grants a third-party application limited access
+   to their resources on another service, without sharing their credentials. 
+   Classic example: a photo-printing app accessing your Google Photos on your behalf.
+
+3. Login / Single Sign On
+
+   Strictly speaking, this is OpenID Connect (OIDC) — an identity layer built on top
+   of OAuth 2.0. OAuth alone doesn't define a standard way to convey user identity.
+   
+4. Machine-to-Machine (M2M) authorization
+
+   Services authenticating and authorizing against each other with no user involved.
+   Common in microservice architectures and IoT — e.g., a device autonomously calling a cloud API.
+   
+4. Consent & Scoped access to resources
+
+   A resource owner (say, the owner of a Google mailbox or an Axis device) can grant fine-grained, revocable
+   permissions to another party to use or manage those resources. Scopes define what access
+   is granted, and tokens can be time-limited. This is central to IoT, smart-home ecosystems and also Axis Cloud Connect.
+   
+6. Limited/Constrained device authorization
+
+   The Device Authorization Grant (RFC 8628) covers devices with limited input capability (smart TVs, IoT sensors).
+   The device displays a code, and the user authorizes on a separate device with a full browser.
+
+
+Back to website example we started with, in OAuth terminology, such entitities are called
+'client' or 'app'. A website that will help you print your photos will need to act as OAuth client.
+The client needs access to the resource (your photos) and for that it needs to request that access. As 
+owner of the resource you'll typically get a screen presented that lists the permissions 
+the client is interested in. This is called the consent screen. In case of Google Photo, when logging 
+in to the photo-print website, you'll get a consent screen from Google that will show you this client 
+wants to access your photos.
+
+If you trust the website with that, you'll select yes. Other providers may allow you to more specifically 
+chose what the client can and can not do.
 
 OAuth and Axis Cloud Connect
 ----------------------------
-Axis Cloud Connect also uses OAuth2 technology. The purpose is not simplified
-account management but just to allow the owner of devices to provide consent
-on specific clients accessing these devices. How it works is that an
-application (here: P) registers as client with Axis Cloud Connect. This is a
-one-time effort. It obtains a client ID and some secret value. To get access
-to devices, it then assembles a url that needs to be passed to the owner of
-the devices. This is done by e-mail in this demonstrator. The owner follows
-the url to axis.com and provides consent on P accessing devices in a specific
+Axis Cloud Connect uses OAuth2 technology. The purpose is obviously not simplified
+account management but to provide consent on access to resources. So, where the 
+photo website example above still combined authentication and consent in one go, 
+this is not the case with Axis Cloud Connect.
+
+How it works is that an application (here: P) registers as client with Axis 
+Cloud Connect. This is a one-time effort. It obtains a client ID and some secret value. For P to get access
+to devices, it assembles a unique url that needs to be passed to the owner of
+the devices. This is done by e-mail in this demonstrator. The e-mail address is known from the agreement between the device owner and service provider that will use P. Upon receiving, the owner follows
+the url to P's portal or axis.com directly and provides consent on P accessing devices in a specific
 'organisation'. A notification of this consent is sent by axis.com to P on a
 callback URL that was provided during registration.  The details inside that
-notification are stored by P so that it can access devices at a later time.
+notification (refresh token) are stored by P so that it can access devices at a later time. The person working at the service provider logging in to P need not have any relation with Axis.
 
-To keep this all safe and secure OAuth2 has some details which make the actual
+To keep this all safe and secure, OAuth2 has some details which make the actual
 mechanics a bit hard to grasp initially.  But the overall process and purpose
 is as simple as explained above.
 
