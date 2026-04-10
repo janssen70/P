@@ -139,7 +139,7 @@ the devices. This is done by e-mail in this demonstrator. The e-mail address is 
 the url to P's portal or axis.com directly and provides consent on P accessing devices in a specific
 'organisation'. A notification of this consent is sent by axis.com to P on a
 callback URL that was provided during registration.  The details inside that
-notification (refresh token) are stored by P so that it can access devices at a later time. The person working at the service provider logging in to P need not have any relation with Axis.
+notification (refresh token) are stored by P so that it can access devices at a later time. The person working at the service provider logging in to P need not have any relation with Axis. He or she is authenticated by P.
 
 To keep this all safe and secure, OAuth2 has some details which make the actual
 mechanics a bit hard to grasp initially.  But the overall process and purpose
