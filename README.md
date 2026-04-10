@@ -74,8 +74,8 @@ Short description of the flow
 In reality, flows can deviate a bit. For example, when Integrator stays
 involved he is likely to to provide consent on behalf of the Enduser.
 
-A simple introduction to OAuth
-==============================
+An introduction to OAuth
+========================
 Most of us are familiar with Google, Facebook and many others being able to
 act as "identity provider" (abbreviated as IDP).  Many websites use this to
 simply account management. This is convenient both for the website itself:
