@@ -21,8 +21,8 @@ Roles
 | ---- | ----------- |
 | Service Provider | Operates a service that requires device access, for example: live observation of cameras or automated collection of counting data. The Service Provider typically uses a software for this, which in this overview is called 'Platform' |
 | Platform | The software that performs the actual interaction with cloud connected cameras. Can be a cloud application itself or an on-prem installation at the Service Provider |
-| Platform DevOps | In case of a cloud Platform, the party that takes care of running it. Included in this list because we can assume this party has full access to the tokens stored in the Platform. |
-| System Integrator | A party that installs devices and configures software system on behalf of the Enduser |
+| Platform DevOps | In case of a cloud Platform, the party that takes care of running it. Included in this list because we can assume admins from this party have access to the tokens stored in the Platform. |
+| System Integrator | A party that installs devices and configures software system on behalf of the Enduser/Owner |
 | Enduser/Owner | Owns the devices and provides consent on the Cloud Connect platform for use of the cameras by others |
 
 This drawing shows the relations:
@@ -74,43 +74,74 @@ Short description of the flow
 In reality, flows can deviate a bit. For example, when Integrator stays
 involved he is likely to to provide consent on behalf of the Enduser.
 
-A simple introduction to OAuth
-==============================
+An introduction to OAuth
+========================
 Most of us are familiar with Google, Facebook and many others being able to
-act as "identity provider" (abbreviated as IDP).  Many websites use this to
-simply account management. This is convenient both for the website itself:
+act as "identity provider" (abbreviation: IDP).  Many websites use this to
+simply account management. That's convenient both for the website itself:
 less account support, as well as for the user: less credentials to manage. You
-will recognise this from the 'Login with Google', and others, option on
-websites and apps.
+will recognise this as the 'Login with Google' (or other providers) option on
+websites and in apps.
 
-The technology for this is called OAuth(2). Sometimes you'll see it mentioned
-as OpenID Connect, which is a thin layer with functionality on top of OAuth2.
-In OAuth terminology, websites as in the example above are called are called
-'client' or 'app'.  OAuth can do more than efficient account management. It
-supports granting clients access to data that is kept at the IDP. Let's take
-Gmail as example, and some hypothetical web portal W that offers to help you
-manage your e-mail.  You login at W using your Google account. You get
-redirected to a dialog at google.com where you are notified that W wants full
-access to your mailbox. This is called the consent screen. If you trust W with
-your e-mail, and you trust Google to give access to W but not others, you
-cross your fingers and confirm you consent that W may access your mailbox
-until you revoke that access. Now, W can manage your mail for you.
+The technology for this is called OAuth, now at version 2.0. However, OAuth is an
+authorization delegation framework. It's not an authentication mechanism, although it's often used as
+a foundation for it. The primary use cases it was designed to address are:
+
+1. Delegated API access
+
+   This is the core usecase. A user grants a third-party application limited access
+   to their resources on another service, without sharing their credentials. 
+   Classic example: a photo-printing app accessing your Google Photos on your behalf.
+
+3. Login / Single Sign On
+
+   Strictly speaking, this is OpenID Connect (OIDC) — an identity layer built on top
+   of OAuth 2.0. OAuth alone doesn't define a standard way to convey user identity.
+   
+4. Machine-to-Machine (M2M) authorization
+
+   Services authenticating and authorizing against each other with no user involved.
+   Common in microservice architectures and IoT — e.g., a device autonomously calling a cloud API.
+   
+4. Consent & Scoped access to resources
+
+   A resource owner (say, the owner of a Google mailbox or an Axis device) can grant revocable
+   permissions to another party to use or manage those resources. Scopes define what access
+   is granted, and tokens can be time-limited. This is central to IoT, smart-home ecosystems and also Axis Cloud Connect.
+   
+6. Limited/Constrained device authorization
+
+   The Device Authorization Grant (RFC 8628) covers devices with limited input capability (smart TVs, IoT sensors).
+   The device displays a code, and the user authorizes on a separate device with a full browser.
+
+
+Back to website example we started with. In OAuth terminology, such entitities are called
+'client' or 'app'. A website that will help you print your photos will need to act as OAuth client.
+The client needs access to the resource (your photos on Google Photos) and for that it needs to request that access. As 
+owner of the resource you'll typically get a screen presented that lists the permissions 
+the client needs. This is called the consent screen. In the example of Google Photos, when logging 
+in to the photo-print website using your Google account, you'll get a consent screen from Google that will show you this client wants to access your photos.
+
+If you trust the website with that, you'll select yes. Other providers may allow you to more specifically 
+chose what the client can and can not do.
 
 OAuth and Axis Cloud Connect
 ----------------------------
-Axis Cloud Connect also uses OAuth2 technology. The purpose is not simplified
-account management but just to allow the owner of devices to provide consent
-on specific clients accessing these devices. How it works is that an
-application (here: P) registers as client with Axis Cloud Connect. This is a
-one-time effort. It obtains a client ID and some secret value. To get access
-to devices, it then assembles a url that needs to be passed to the owner of
-the devices. This is done by e-mail in this demonstrator. The owner follows
-the url to axis.com and provides consent on P accessing devices in a specific
+Axis Cloud Connect uses OAuth 2.0 technology. The purpose is obviously not simplified
+account management but to provide consent on access to resources. So, where the 
+photo website example above still combined authentication and consent in one go, 
+this is not the case with Axis Cloud Connect. You _can_ do that, but that's not what it is for.
+
+How it works is that an application (here: P) registers as client with Axis 
+Cloud Connect. This is a one-time effort. It obtains a client ID and some secret value. For P to get access
+to devices, it assembles a unique url that needs to be passed to the owner of
+the devices. This is done by e-mail in this demonstrator. The e-mail address is known from the business agreement between the device owner and service provider that will use P. Upon receiving, the owner follows
+the url to P's portal or axis.com directly and provides consent on P accessing devices in a specific
 'organisation'. A notification of this consent is sent by axis.com to P on a
 callback URL that was provided during registration.  The details inside that
-notification are stored by P so that it can access devices at a later time.
+notification (refresh token) are stored by P so that it can access devices at a later time. The person working at the service provider logging in to P need not have any relation with Axis. He or she is authenticated by P.
 
-To keep this all safe and secure OAuth2 has some details which make the actual
+To keep this all safe and secure, OAuth2 has some details which make the actual
 mechanics a bit hard to grasp initially.  But the overall process and purpose
 is as simple as explained above.
 
@@ -130,10 +161,10 @@ Implementation notes
 This module is built using Python and the [Django](https://www.djangoproject.com/) web framework.
 It expects presence of other modules that in turn assume the presence of
 [django-allauth](https://docs.allauth.org/en/latest/). django-allauth strongly
-couples OAuth2 with website users and is less suitable to obtain
-consent from 3rd party individuals. This module therefore uses
+couples OAuth2 with authentication and is less suitable to obtain
+consent from 3rd party individuals. This module therefore also uses
 [Authlib](https://docs.authlib.org/en/latest/) but initialises Authlib using
-the OAuth-client details provided by the configured client in django-allauth.
+the OAuth-client details provided by the configured client in django-allauth.                                    
 
 This aspect is not crucial and can be ignored. A convenient side effect is
 that one need not setup a local enduser account on the demo instance. One can login
@@ -155,9 +186,9 @@ relevant files in this repository.
 
 | Path | Description |
 |------|-------------|
-| urls.py | Binds urls to views |
+| urls.py | Binds urls to views (=functions handling a url) |
 | models.py | Defines the database models |
-| views.py | Defines the logic behind the various urls |
+| views.py | Defines the logic behind each url |
 | oauth.py | authlib-based OAuth helper functions & allauh->authlib glue logic |
 | serviceclient.py | Classes to interact with Axis Cloud Connect |
 | admin.py | Glue logic for use in Django admin pages |
