@@ -8,7 +8,8 @@
 {% block extrahead %}
   {% include 'fontawesome.html' %}
   {% include 'purecss_grids.html' %}
-  <link rel="stylesheet" href="/css/P/messages.css">
+  {% include 'datatables.html' %}
+  {% include 'jquery-contextmenu.html' %}
   <link rel="stylesheet" href="/css/P/P.css">
 {% endblock %}
 
@@ -21,7 +22,7 @@
   {% include 'usercontent/embedded_section_view.html' %}
 
   {% if error %}
-     <div class="error">error</div>
+     <div class="error" data-msg="{{ error }}"></div>
   {% else %}
      <div id="device_list" data-org="{{ org_id }}" data-client="{{ client_id }}" data-service="{{ service.id }}">
         <div class="pure-g">
@@ -33,15 +34,29 @@
         </div>
      </div>
      <br>
-     <div id="message-area"></div>
+     <div id="videocontainer">
+        <video id="remoteVideo" playsinline autoplay></video>
+     </div>
      <br>
-     <video id="remoteVideo" playsinline autoplay></div>
+     <div id="recording_container">
+        <table id="recordings_list" class="hidden display compact">
+          <thead>
+            <tr>
+              <th>{% trans 'Recording ID' %}</th>
+              <th>{% trans 'Type' %}</th>
+              <th>{% trans 'Start' %}</th>
+              <th>{% trans 'Duration (s)' %}</th>
+              <th>{% trans 'Status' %}</th>
+              <th></th>
+            </tr>
+          </thead>
+        </table>
+     </div>
   {% endif %}
 
   <script type="text/javascript" src="/static/django_js_reverse/js/reverse.js" defer></script>
   <script type="text/javascript" src="/js/site.js" defer></script>
   <script type="text/javascript" src="/js/link_buttons.js" defer></script>
-  <script type="text/javascript" src="/js/P/messages.js"></script>
   <script type="text/javascript" src="/js/P/webrtc.js"></script>
   <script type="text/javascript" src="/js/P/service_page.js"></script>
   {% include 'usercontent/editing_includes.html' %}

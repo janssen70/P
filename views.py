@@ -1,6 +1,8 @@
+import os
 import json
 from typing import Union, Tuple
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth import get_user_model
@@ -20,6 +22,7 @@ from utilities.core.oauth2 import TokenError
 from utilities.web.forms import make_timezone_aware
 from utilities.web.views import MyAddView, MyEditView, SearchableListView
 from utilities.core.env import require_env
+from utilities.files.fileops import do_download
 from usercontent.views import embedded_section_view
 from tenants.settings import tenant
 
@@ -28,6 +31,19 @@ from .models import ConsentRequest, EndUser, OAuthToken, Service
 from .oauth import get_client, revoke_token
 from .utils import ServiceSerializer, epoch_to_datetime, get_user_enduser_emails
 from .serviceclient import OrganizationClient, ServerError
+
+# Temporary
+from device_tool.device_tool import (
+      WebAccess,
+      VapixClient,
+      MyUsecases,
+      StandardSSLContext,
+      parse_call,
+      call_method
+   )
+from connectedservices.management.commands.device_tool import EdgeLinkAccess
+from .serviceclient import organization_arn_to_id
+
 
 User = get_user_model()
 
@@ -69,23 +85,47 @@ class P_OAuth2Authenticator(Authenticator):
       """
       return self.token_instance.get_token()
 
+# -------------------------------------------------------------------------------
+#   Client connection helpers                                                {{{2
+# -------------------------------------------------------------------------------
+
+def _get_service_and_connection(service: Union[Service, str]) -> Tuple[Service, OrganizationClient]:
+   """
+   Utility function to convert <service> (which could already be Service but
+   is often a string) to a Service and an OrganizationClient to that Service.
+   """
+   if not isinstance(service, Service):
+      service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service)
+
+   conn = OrganizationClient(
+      authenticator = P_OAuth2Authenticator(service.oauth_token),
+      api_key = ACC_GRAPHQL_API_KEY,
+      org_arn = service.oauth_token.extra_data['axis:organization'],
+      org_label = 'unknown',
+      logger = tenant.LOGGER
+   )
+   return service, conn
+
+def get_vapix_client(service_id : str, device_id : str) -> VapixClient:
+   _, conn = _get_service_and_connection(service_id)
+   w = EdgeLinkAccess(organization_arn_to_id(conn.org_arn), device_id, conn.authenticator.token(), context = StandardSSLContext())
+   return VapixClient(w)
+
+# -------------------------------------------------------------------------------
+#   GraphQL helpers                                                          {{{2
+# -------------------------------------------------------------------------------
+
 def list_devices(service: Union[Service, str]) -> dict:
    """
    Determine organisation arn of the Service and run GraphQL query to obtain
    the devices.
    """
-   if not isinstance(service, Service):
-      service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service)
+   service, conn = _get_service_and_connection(service)
+   return conn.list_devices(conn.org_arn)
 
-   org_arn = service.oauth_token.extra_data['axis:organization']
-   conn = OrganizationClient(
-      authenticator = P_OAuth2Authenticator(service.oauth_token),
-      api_key = ACC_GRAPHQL_API_KEY,
-      org_arn = org_arn,
-      org_label = 'unknown',
-      logger = tenant.LOGGER
-   )
-   return conn.list_devices(org_arn)
+# -------------------------------------------------------------------------------
+#   OAuth helpers                                                            {{{2
+# -------------------------------------------------------------------------------
 
 def do_revoke(service: Service, user: User) -> Tuple[bool, str]:
    """
@@ -354,8 +394,13 @@ def service_page(request, service_id):
       return consent_page(service)
 
    error = None
+   devices = []
    try:
-      devices = list_devices(service)['data']['organization']['allDevices']['devices']
+      raw = list_devices(service)
+      if 'data' in raw:
+         devices = raw['data']['organization']['allDevices']['devices']
+      elif 'message' in raw:
+         error = raw['message']
 
    except TokenError as e:
       service.oauth_token.revoked = True
@@ -418,6 +463,31 @@ def send_consent_email(request, service_id):
    context['service'] = service
    context['consent_request'] = consent_req
    return render(request, 'P/consent_sent.html', context)
+
+# The following views are nothing more than a gateway. Could also be done from
+# javascript side
+
+@permission_required('P.view_service')
+def edge_recording_list(request, service_id, device_id):
+   """
+   Request list of edge recordings of <device_id> (a MAC address) through
+   <service>
+   """
+   vapix_client = get_vapix_client(service_id, device_id)
+   return JsonResponse({'data': vapix_client.ListRecordings()})
+
+@permission_required('P.view_service')
+def edge_recording_get(request, service_id, device_id, disk_id, rec_id):
+   """
+   Download a specific edge recording using data obtained from calling
+   list_edge_recording() on the same <device_id>
+   """
+   # Misunderstanding. Filename is not the recording id, so this caching won't
+   # work
+   if not os.path.isfile(full_name := f'{tenant.TEMP_ROOT}/{rec_id}.mkv'):
+      vapix_client = get_vapix_client(service_id, device_id)
+      full_name = vapix_client.ExportRecording(folder = tenant.TEMP_ROOT, disk_id = disk_id, rec_id = rec_id)
+   return do_download(full_name)
 
 # ------------------------------------------------------------------------------
 #

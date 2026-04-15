@@ -25,6 +25,14 @@ urlpatterns = [
    path('service/<uuid:service_id>/send-consent/', views.send_consent_email, name='p-send-consent-email'),
 
    # -------------------------------------------------------------------------------
+   # Device access within a service
+   # -------------------------------------------------------------------------------
+
+   path('device/<uuid:service_id>/<str:device_id>/recordings/list/', views.edge_recording_list, name='p-edgerecording-list-json'),
+   path('device/<uuid:service_id>/<str:device_id>/recording/<str:disk_id>/<str:rec_id>/get/',
+                                                                     views.edge_recording_get, name='p-edgerecording-get'),
+
+   # -------------------------------------------------------------------------------
    # Combined (both Service Provider and Enduser) views
    # -------------------------------------------------------------------------------
 
