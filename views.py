@@ -22,7 +22,7 @@ from utilities.core.oauth2 import TokenError
 from utilities.web.forms import make_timezone_aware
 from utilities.web.views import MyAddView, MyEditView, SearchableListView
 from utilities.core.env import require_env
-from utilities.files.fileops import do_download
+from utilities.files.fileops import do_download, run_executable
 from usercontent.views import embedded_section_view
 from tenants.settings import tenant
 
@@ -479,15 +479,19 @@ def edge_recording_list(request, service_id, device_id):
 @permission_required('P.view_service')
 def edge_recording_get(request, service_id, device_id, disk_id, rec_id):
    """
-   Download a specific edge recording using data obtained from calling
+   Download (and convert) a specific edge recording using data obtained from calling
    list_edge_recording() on the same <device_id>
+
+   The conversion is lightweight, it fixes a metadata issue that's present in
+   edge recording files, and .mp4 is a more widely supported container anyway.
    """
-   # Misunderstanding. Filename is not the recording id, so this caching won't
-   # work
-   if not os.path.isfile(full_name := f'{tenant.TEMP_ROOT}/{rec_id}.mkv'):
+
+   if not os.path.isfile(mp4_name := f'{tenant.TEMP_ROOT}/{rec_id}.mp4'):
       vapix_client = get_vapix_client(service_id, device_id)
       full_name = vapix_client.ExportRecording(folder = tenant.TEMP_ROOT, disk_id = disk_id, rec_id = rec_id)
-   return do_download(full_name)
+      if run_executable(['ffmpeg', '-i', full_name, '-c', 'copy', '-map_metadata', '0', '-y', mp4_name]):
+         os.remove(full_name)
+   return do_download(mp4_name)
 
 # ------------------------------------------------------------------------------
 #
