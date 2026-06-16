@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _, get_language_from_request
 from django.utils import formats
 
-from utilities.web.helpers import jquery_datepicker_format
+from utilities.web.helpers import xdsoft_date_format
 from .models import Service, EndUser
 
 User = get_user_model()
@@ -45,7 +45,7 @@ class ServiceSearchForm(forms.Form):
          self.fields[field_name].widget.format = date_formats[0]
          self.fields[field_name].input_formats = date_formats
          self.fields[field_name].widget.attrs['class'] = 'datepicker'
-         self.fields[field_name].widget.attrs['data-dateformat'] = jquery_datepicker_format(date_formats[0])
+         self.fields[field_name].widget.attrs['data-dateformat'] = xdsoft_date_format(date_formats[0])
 
 # -------------------------------------------------------------------------------
 #

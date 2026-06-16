@@ -57,6 +57,7 @@ class WebRTCClient
        * This url relies on proxy forward with adjusted headers
        */
       const wsBaseUrl = 'wss://' + window.location.host + '/prod-signal/client';
+      // const wsBaseUrl = 'wss://signaling.prod.webrtc.connect.axis.com/prod-signal/client';
       this.token = `Bearer ${tokenInput.trim()}`;
       this.targetId = targetId;
 

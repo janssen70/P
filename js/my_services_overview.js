@@ -46,11 +46,11 @@ function register_service_contextmenu(trigger_def)
                   disabled: false,
                   callback: function(itemKey, opt, e)
                   {
-                     doForm(
+                     modalForm(
                         Urls.p_my_service_edit(data.id),
                         t['Properties'],
                         'serviceform',
-                        600, 500, 400,
+                        600,
                         null,
                         function(response)
                         {
@@ -269,11 +269,11 @@ $(document).ready(function()
 
    $('#add_service').click(function()
    {
-      doForm(
+      modalForm(
          $(this).attr('data-url'),
          t['AddService'],
          'serviceform',
-         600, 500, 400,
+         600,
          null,
          function(response)
          {

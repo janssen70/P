@@ -56,7 +56,7 @@ def _ensure_registered():
        server_metadata_url = social_app.settings.get('server_url').rstrip('/') + '/.well-known/openid-configuration',
        client_kwargs = {
 #          'scope': ' '.join(social_app.settings.get('scope'))
-           'scope': 'openid offline operator'
+           'scope': 'openid offline administrator'
        },
    )
    _initialized = True
