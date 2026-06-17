@@ -195,8 +195,6 @@ class ServicesOverview(ServiceAdminRequired, TemplateView):
 
 class Services_ListJson(ServiceAdminRequired, SearchableListView):
    """
-   Following a pattern from other code. Search functionality isn't very
-   uisefull with just a handfull of items in the list
    """
 
    def get_form(self):
