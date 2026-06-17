@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
 from django.db.models import Q
 from authlib.integrations.django_client import OAuthError
 
@@ -218,6 +218,27 @@ class Services_ListJson(ServiceAdminRequired, SearchableListView):
 
    def serialize(self, query):
       return ServiceSerializer().serialize(query, fields = ())
+
+
+class Services_AccessibleJson(ServiceAdminRequired, View):
+   """
+   Slim list of consented services: just {'id', 'label'} per service, for
+   pickers (e.g. countevents' "add remote device" menu) that don't need the
+   full Services_ListJson payload and shouldn't see unconsented services.
+   """
+
+   def get(self, request, *args, **kwargs):
+      services = Service.objects.filter(
+         oauth_token__isnull = False, oauth_token__revoked = False
+      ).select_related('end_user')
+      data = [
+         {
+            'id': str(service.pk),
+            'label': f'{service.end_user} — {service.description}' if service.description else str(service.end_user),
+         }
+         for service in services
+      ]
+      return JsonResponse(data, safe = False)
 
 
 class ServiceAdd(ServiceAdminRequired, MyAddView):

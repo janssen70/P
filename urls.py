@@ -15,6 +15,7 @@ urlpatterns = [
 
    path('services/', views.ServicesOverview.as_view(), name='p-services-manage'),
    path('services/list/', views.Services_ListJson.as_view(), name='p-services-list-json'),
+   path('services/accessible/', views.Services_AccessibleJson.as_view(), name='p-services-accessible-json'),
    path('service/add/', views.ServiceAdd.as_view(), name='p-service-add'),
    path('service/<uuid:service_id>/edit/', views.ServiceEdit.as_view(), name='p-service-edit'),
    path('service/<uuid:service_id>/rm/', views.service_rm, name='p-service-rm'),
