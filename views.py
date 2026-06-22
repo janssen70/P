@@ -424,7 +424,8 @@ def service_page(request, service_id):
    except TokenError as e:
       service.oauth_token.revoked = True
       service.oauth_token.save()
-      return consent_page(service, msg = _('Consent has expired. Please request new consent.'))
+      # return consent_page(service, msg = _('Consent has expired. Please request new consent.'))
+      return consent_page(service, msg = f'Error: {e}, {error}')
    except Exception as e:
       error = str(e)
 
@@ -462,6 +463,8 @@ def send_consent_email(request, service_id):
    """
    service = get_object_or_404(Service.objects.select_related('end_user'), id = service_id)
    consent_req, __ = ConsentRequest.objects.get_or_create(service = service)
+   consent_req.requested_at = timezone.now()
+   consent_req.save()
 
    mail_context = {
       'subject': _('Consent needed'),
@@ -475,8 +478,6 @@ def send_consent_email(request, service_id):
                                    to_ = service.end_user.email, always_bcc = [tenant.ORGANISATION_EMAIL])
    Log(LOG_INFO, request, 'Done sending e-mail')
 
-   consent_req.requested_at = timezone.now()
-   consent_req.save()
 
    context = embedded_section_view(request, 'embedded', 'p-consent-sent')
    context['service'] = service

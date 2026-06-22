@@ -17,12 +17,12 @@ function show_ready()
 
 function success_callback(target_id)
 {
-   showSuccess(`Connected to ${target_id}`);
+   setSuccess(`Connected to ${target_id}`);
 }
 
 function error_callback(error_code, error_reason)
 {
-   showError(`An error occurred. Code: ${error_code}. Reason: ${error_reason}`)
+   setError(`An error occurred. Code: ${error_code}. Reason: ${error_reason}`)
 }
 
 function preprocess_recordings(data)
@@ -161,7 +161,7 @@ $(document).ready(function()
    let error_msg = $('#error').attr('data-msg');
    if (error_msg != undefined)
    {
-      showError('serverside_error', error_msg);
+      setError('serverside_error', error_msg);
    }
 
    const webrtc = new WebRTCClient(org_id, client_id, 'remoteVideo', success_callback, error_callback);
@@ -170,12 +170,9 @@ $(document).ready(function()
    {
       let mac = $(this).attr('data-cam');
       current_mac = mac;
+      $('.cam_button').prop('disabled', true);
       /*
-       * Start filling the edge recording table (if edge recordings exist)
-       */
-      request_recordings(service_id, mac);
-      /*
-       * Commence WebRTC
+       * Ensure there's a token, then start WebRTC and recording retrieval
        */
       $.ajax({
          method: 'GET',
@@ -184,7 +181,9 @@ $(document).ready(function()
       .done(function(token)
       {
          console.log(mac);
+         $('.cam_button').prop('disabled', false);
          webrtc.play(token, mac);
+         request_recordings(service_id, mac);
       });
    });
 });

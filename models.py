@@ -3,6 +3,7 @@ Models for the P Platform
 """
 import uuid
 
+import redis
 from django.conf import settings
 from django.db import models
 
@@ -93,6 +94,12 @@ class Service(models.Model):
       return user.has_perm('P.change_service') or self.end_user.email in get_user_enduser_emails(user)
 
 
+# Serializes concurrent refreshes of the same OAuthToken: the identity
+# provider invalidates a refresh_token on first use, so a second refresh
+# started before the first one's result is saved would replay an
+# already-obsoleted refresh_token.
+_redis_client = redis.Redis(connection_pool=settings.REDIS_POOL)
+
 class OAuthToken(models.Model):
    """
    Stored independently — Service points to it.
@@ -134,45 +141,65 @@ class OAuthToken(models.Model):
       """
       Returns the access_token or refreshes it first if needed.
       Mutates and saves the object in place.
+
+      A per-token Redis lock serializes refreshes: a second caller that
+      arrives while a refresh is in flight waits for it, then re-checks the
+      (by then reloaded) token instead of racing it with its own refresh.
       """
+      self.refresh_from_db()
       if not self.is_expired() and not self.revoked:
          return self.access_token
 
-      if not self.refresh_token:
-         if not self.revoked:
+      lock = _redis_client.lock(f'oauth_token_refresh:{self.pk}', timeout=30, blocking_timeout=20)
+      if not lock.acquire():
+         raise TokenError('Timed out waiting for a concurrent token refresh')
+
+      try:
+         self.refresh_from_db()
+         if not self.is_expired() and not self.revoked:
+            return self.access_token
+
+         if not self.refresh_token:
+            if not self.revoked:
+               self.revoked = True
+               self.save(update_fields = ['revoked'])
+            raise TokenError('No refresh token')
+
+         client_id, client_secret, token_endpoint = get_credentials()
+         session = OAuth2Session(client_id, client_secret, token=self.as_authlib_token())
+         try:
+            # See: ~/.local/lib/python3.12/site-packages/authlib/oauth2/client.py
+            new_token = session.refresh_token(token_endpoint, refresh_token=self.refresh_token)
+         except Exception as e:
             self.revoked = True
             self.save(update_fields = ['revoked'])
-         raise TokenError('No refresh token')
+            raise TokenError(f'Failed to refresh token: {e}') from e
 
-      client_id, client_secret, token_endpoint = get_credentials()
-      session = OAuth2Session(client_id, client_secret, token=self.as_authlib_token())
-      try:
-         new_token = session.refresh_token(token_endpoint, refresh_token=self.refresh_token)
-      except Exception as e:
-         self.revoked = True
-         self.save(update_fields = ['revoked'])
-         raise TokenError(f'Failed to refresh token: {e}') from e
-
-      self.access_token = new_token['access_token']
-      self.refresh_token = new_token.get('refresh_token', self.refresh_token)
-      self.expires_at = epoch_to_datetime(new_token.get('expires_at'))
-      self.revoked = False
-      self.save()
-      return self.access_token
+         self.access_token = new_token['access_token']
+         self.refresh_token = new_token.get('refresh_token', self.refresh_token)
+         self.expires_at = epoch_to_datetime(new_token.get('expires_at'))
+         self.revoked = False
+         self.save()
+         return self.access_token
+      finally:
+         try:
+            lock.release()
+         except redis.exceptions.LockError:
+            pass
 
 class ConsentRequest(models.Model):
    """
    Tracks consent email state per service. Prevents duplicate emails, enables
    resend control.
 
-   <token> here is the email link token, NOT the OAuth token. The link in the
+   <token> is for the email link, it is NOT the OAuth token. The link in the
    e-mail will first land the user on our website. It is confusing/feels
    suspicious when the e-mail links to axis directly or that our website
    immediately redirects.
 
    The end-user first lands on a page which confirms what is going to happen,
-   there a button needs to be present to commence consent-process. See
-   views.oauth_start()
+   user sees website, can check certificate, etc, a button is offered to
+   commence consent-process. See views.oauth_start()
    """
    service = models.OneToOneField(
        Service,

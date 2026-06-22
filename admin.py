@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.shortcuts import render
+from django.urls import reverse
 from django.contrib import messages
+from django.utils.html import escape, mark_safe
 
 from allauth.socialaccount.models import SocialApp, SocialAccount, SocialToken
 
@@ -83,14 +85,21 @@ populate_oauth_token_from_allauth.short_description = "Populate OAuth token from
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-   list_display = ('id', 'employee', 'end_user', 'needs_consent', 'created_at')
+
+   def token_link(self, obj):
+      if obj.oauth_token:
+         link = reverse('admin:P_oauthtoken_change', args=[obj.oauth_token.pk])
+         return mark_safe(f'<a href="{link}">{obj.oauth_token.pk}</a>')
+      return '-'
+
+   list_display = ('id', 'description', 'employee', 'end_user', 'needs_consent', 'token_link', 'created_at')
    list_select_related = ('employee', 'end_user', 'oauth_token')
    actions = [populate_oauth_token_from_allauth]
 
 
 @admin.register(EndUser)
 class EndUserAdmin(admin.ModelAdmin):
-   list_display = ('email', 'portal_account')
+   list_display = ('pk', 'email', 'portal_account')
 
 
 @admin.register(OAuthToken)
