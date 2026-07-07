@@ -728,7 +728,7 @@ class VapixClient(ServiceClient):
       self.org_id = org_id
 
    def _response(self, r: requests.Response):
-      if r.headers['Content-Type'] == 'application/json':
+      if r.headers.get('Content-Type', '') == 'application/json':
          j = r.json()
          if r.status_code >= 300:
             raise ServerErrorResponse(r.status_code, j['message'])

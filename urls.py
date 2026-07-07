@@ -37,7 +37,6 @@ urlpatterns = [
    # Combined (both Service Provider and Enduser) views
    # -------------------------------------------------------------------------------
 
-   path('service/<uuid:service_id>/rm/', views.service_rm, name='p-service-rm'),
    path('service/<uuid:service_id>/revoke/', views.service_revoke, name='p-service-revoke'),
 
    # -------------------------------------------------------------------------------

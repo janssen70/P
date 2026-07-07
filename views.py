@@ -97,10 +97,13 @@ def _get_service_and_connection(service: Union[Service, str]) -> Tuple[Service, 
    if not isinstance(service, Service):
       service = get_object_or_404(Service.objects.select_related('oauth_token'), id = service)
 
+   if not (org_arn := service.oauth_token.extra_data.get('axis:organization')):
+      raise ValueError(_('OAuth token is missing the axis:organization claim'))
+
    conn = OrganizationClient(
       authenticator = P_OAuth2Authenticator(service.oauth_token),
       api_key = ACC_GRAPHQL_API_KEY,
-      org_arn = service.oauth_token.extra_data['axis:organization'],
+      org_arn = org_arn,
       org_label = 'unknown',
       logger = tenant.LOGGER
    )
@@ -193,8 +196,11 @@ class ServicesOverview(ServiceAdminRequired, TemplateView):
       return context
 
 
-class Services_ListJson(ServiceAdminRequired, SearchableListView):
+class ServiceSearchListJsonMixin:
    """
+   Shared get_form / get_filters_from_form / serialize logic for the
+   Service-searching list views (Services_ListJson, MyServices_ListJson).
+   Only get_queryset() differs between them.
    """
 
    def get_form(self):
@@ -213,11 +219,16 @@ class Services_ListJson(ServiceAdminRequired, SearchableListView):
          q &= Q(created_at__lte = make_timezone_aware(created_before))
       return q
 
-   def get_queryset(self):
-      return Service.objects.select_related('employee', 'end_user', 'oauth_token').all().order_by('created_at')
-
    def serialize(self, query):
       return ServiceSerializer().serialize(query, fields = ())
+
+
+class Services_ListJson(ServiceAdminRequired, ServiceSearchListJsonMixin, SearchableListView):
+   """
+   """
+
+   def get_queryset(self):
+      return Service.objects.select_related('employee', 'end_user', 'oauth_token').all().order_by('created_at')
 
 
 class Services_AccessibleJson(ServiceAdminRequired, View):
@@ -424,17 +435,18 @@ def service_page(request, service_id):
    except TokenError as e:
       service.oauth_token.revoked = True
       service.oauth_token.save()
-      # return consent_page(service, msg = _('Consent has expired. Please request new consent.'))
-      return consent_page(service, msg = f'Error: {e}, {error}')
+      # return consent_page(service, msg = f'Error: {e}, {error}')
+      return consent_page(service, msg = _('Consent has expired. Please request new consent.'))
    except Exception as e:
       error = str(e)
 
+   org_arn = service.oauth_token.extra_data.get('axis:organization')
    context = embedded_section_view(request, 'embedded', 'p-service-page')
    context.update({
       'error': error,
       'service': service,
       'devices': devices,
-      'org_id': service.oauth_token.extra_data['axis:organization'].split(':')[2],
+      'org_id': org_arn.split(':')[2] if org_arn else None,
       'client_id': get_client().client_id
    })
 
@@ -509,7 +521,7 @@ def edge_recording_get(request, service_id, device_id, disk_id, rec_id):
    if not os.path.isfile(mp4_name := f'{tenant.TEMP_ROOT}/{rec_id}.mp4'):
       vapix_client = get_vapix_client(service_id, device_id)
       full_name = vapix_client.ExportRecording(folder = tenant.TEMP_ROOT, disk_id = disk_id, rec_id = rec_id)
-      if run_executable(['ffmpeg', '-i', full_name, '-c', 'copy', '-map_metadata', '0', '-y', mp4_name]):
+      if not run_executable(['ffmpeg', '-i', full_name, '-c', 'copy', '-map_metadata', '0', '-y', mp4_name]):
          os.remove(full_name)
    return do_download(mp4_name)
 
@@ -564,36 +576,17 @@ class MyServicesOverview(LoginRequiredMixin, TemplateView):
          context['translations'] = MY_SERVICES_OVERVIEW_TRANSLATIONS
       return context
 
-class MyServices_ListJson(LoginRequiredMixin, SearchableListView):
+class MyServices_ListJson(LoginRequiredMixin, ServiceSearchListJsonMixin, SearchableListView):
    """
-   See Services_ListJson, the AI wasn't clever enough to share code
-   TODO: Share code with the other function
+   See Services_ListJson, shares its search form / filters / serialization via
+   ServiceSearchListJsonMixin.
    """
-
-   def get_form(self):
-      return ServiceSearchForm(self.request, self.request.GET)
-
-   def get_filters_from_form(self, f):
-      q = Q()
-      description = f.cleaned_data.get('description')
-      if description:
-         q &= Q(description__icontains=description)
-      created_after = f.cleaned_data.get('created_after')
-      if created_after:
-         q &= Q(created_at__gte=make_timezone_aware(created_after))
-      created_before = f.cleaned_data.get('created_before')
-      if created_before:
-         q &= Q(created_at__lte=make_timezone_aware(created_before))
-      return q
 
    def get_queryset(self):
       emails = get_user_enduser_emails(self.request.user)
       return Service.objects.select_related('employee', 'end_user', 'oauth_token').filter(
          end_user__email__in=emails,
       ).order_by('created_at')
-
-   def serialize(self, query):
-      return ServiceSerializer().serialize(query, fields=())
 
 
 class MyServiceAdd(LoginRequiredMixin, MyAddView):
