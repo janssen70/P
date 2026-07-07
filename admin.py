@@ -79,6 +79,8 @@ def populate_oauth_token_from_allauth(modeladmin, request, queryset):
    if skipped:
       messages.warning(request, f"Skipped: {'; '.join(skipped)}")
 
+   return None
+
 
 populate_oauth_token_from_allauth.short_description = "Populate OAuth token from allauth"
 

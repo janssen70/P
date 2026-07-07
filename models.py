@@ -5,7 +5,8 @@ import uuid
 
 import redis
 from django.conf import settings
-from django.db import models
+from django.db import models, IntegrityError, transaction
+from django.utils import timezone
 
 from authlib.integrations.requests_client import OAuth2Session
 
@@ -36,7 +37,6 @@ class EndUser(models.Model):
       OneToOneField is already taken by another EndUser record. This detail can be
       ignored for now.
       """
-      from django.db import IntegrityError, transaction
       try:
          with transaction.atomic():
             enduser, _ = cls.objects.get_or_create(
@@ -115,7 +115,6 @@ class OAuthToken(models.Model):
    updated_at = models.DateTimeField(auto_now=True)
 
    def is_expired(self):
-      from django.utils import timezone
       if not self.expires_at:
          return False
       return timezone.now() >= self.expires_at
@@ -133,7 +132,6 @@ class OAuthToken(models.Model):
       Force the token to appear expired so that get_token() will try obtain a
       fresh one
       """
-      from django.utils import timezone
       self.expires_at = timezone.now()
       self.save(update_fields=["expires_at"])
 

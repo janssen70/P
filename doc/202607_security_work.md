@@ -69,7 +69,7 @@ problem, not the mechanism.
 > etc.) are OAuth scopes; those are GraphQL access *roles*, a different concept.
 
 ### 2. Cross-tenant file write via device-controlled download filename — MEDIUM/HIGH
-- [ ] Sanitize the download filename in `_file_download`
+- [x] Sanitize the download filename in `_file_download`
 
 **Where:** `device_tool/device_tool.py:875-879`, reached from
 `P/views.py:511` (`edge_recording_get` → `ExportRecording`).
@@ -93,7 +93,7 @@ outside the tenant" requirement.
 paths before joining to `folder`.
 
 ### 3. Recording export cache keyed only on `rec_id` — MEDIUM (authz smell)
-- [ ] Include `service_id` + `device_id` in the cache key
+- [x] Include `service_id` + `device_id` in the cache key
 
 **Where:** `P/views.py:509`.
 
@@ -111,8 +111,13 @@ should not be bypassable by a cache hit.
 **Suggested fix:** key the cache on `service_id` + `device_id` + `rec_id`
 (or a hash of them).
 
+**Fix applied:** the on-disk cache filename is now
+`sha256(service_id|device_id|disk_id|rec_id)` (internal only), decoupled from
+the filename shown to the user, which stays `{rec_id}.mp4` via
+`do_download(mp4_name, alt_name=f'{rec_id}.mp4')`.
+
 ### 4. Unencoded params injected into the device VAPIX query string — LOW
-- [ ] URL-encode `disk_id`, `rec_id`, `device_id` before building the request
+- [x] URL-encode `disk_id`, `rec_id`, `device_id` before building the request
 
 **Where:** `device_tool/device_tool.py:1664` (`ExportRecording`), device URL
 build in `serviceclient.py`.
@@ -122,6 +127,28 @@ build in `serviceclient.py`.
 `device_id` into the edgelink URL path. `<str>` blocks `/`, so no path
 traversal, and the target is always the end user's own camera (already fully
 accessible to the service), so impact is low.
+
+**Fix applied:** `urllib.parse.quote(value, safe='')` around each
+interpolated value:
+- `device_tool/device_tool.py`: `ExportRecording` (`disk_id`, `rec_id`) and
+  `ListRecordings` (`rec_id`; `other_args` untouched — it's a raw pre-built
+  query fragment, not a single value, and no caller passes attacker data
+  through it).
+- `connectedservices/management/commands/device_tool.py`:
+  `EdgeLinkAccess.__init__` (`org_id`, `device_id`) — this is the actual
+  runtime class behind the edgelink URL build (the plan's original pointer to
+  `serviceclient.py` was the wrong file for the reachable path).
+- Also fixed, same class of issue, found while in this code: the duplicated
+  `VapixClient.get`/`post` in `P/serviceclient.py` and
+  `connectedservices/serviceclient.py` (`org_id`, `device_id`), used via
+  `connectedservices/connection.py` → `device_refresh`/`device_loadimage`.
+  Lower priority there since current callers pass a DB-matched `dev.serial`
+  and a hardcoded `vapix_call`, not raw request data — but same pattern,
+  cheap to harden.
+- Also fixed, unrelated pre-existing bug found nearby: `device_tool.py:876`
+  called bare `urlparse(url)` with only `import urllib.parse` (no
+  `from urllib.parse import urlparse`) in scope — would `NameError` whenever
+  `Content-Disposition` lacks a filename. Changed to `urllib.parse.urlparse`.
 
 **Suggested fix:** URL-encode these values as defense-in-depth against
 parameter smuggling.

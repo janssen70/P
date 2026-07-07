@@ -5,6 +5,7 @@ Various operations on the Axis Cloud Connect portal
 """
 
 import json
+import urllib.parse
 
 import requests
 
@@ -743,7 +744,10 @@ class VapixClient(ServiceClient):
       Run a VAPIX get
       """
       self.headers['Authorization'] = f'Bearer {self.authenticator.token()}'
-      url = f'https://api.edgelink.connect.axis.com/organizations/{self.org_id}/targets/{device_id}/vapix{vapix_call}'
+      url = (
+         f'https://api.edgelink.connect.axis.com/organizations/{urllib.parse.quote(self.org_id, safe="")}'
+         f'/targets/{urllib.parse.quote(device_id, safe="")}/vapix{vapix_call}'
+      )
       try:
          return self._response(requests.get(url, timeout = DEFAULT_TIMEOUT, headers = self.headers))
       except requests.Timeout as e:
@@ -754,7 +758,10 @@ class VapixClient(ServiceClient):
       Run a VAPIX POST
       """
       self.headers['Authorization'] = f'Bearer {self.authenticator.token()}'
-      url = f'https://api.edgelink.connect.axis.com/organizations/{self.org_id}/targets/{device_id}/vapix{vapix_call}'
+      url = (
+         f'https://api.edgelink.connect.axis.com/organizations/{urllib.parse.quote(self.org_id, safe="")}'
+         f'/targets/{urllib.parse.quote(device_id, safe="")}/vapix{vapix_call}'
+      )
       try:
          return self._response(requests.post(url, timeout = DEFAULT_TIMEOUT, data = data, headers = self.headers))
       except requests.Timeout as e:

@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 from typing import Union, Tuple
 
 from django.conf import settings
@@ -26,24 +27,18 @@ from utilities.files.fileops import do_download, run_executable
 from usercontent.views import embedded_section_view
 from tenants.settings import tenant
 
+# Temporary
+from device_tool.device_tool import (
+      VapixClient,
+      StandardSSLContext,
+   )
+from connectedservices.management.commands.device_tool import EdgeLinkAccess
+
 from .forms import EndUserForm, MyServiceForm, ServiceForm, ServiceSearchForm
 from .models import ConsentRequest, EndUser, OAuthToken, Service
 from .oauth import get_client, revoke_token
 from .utils import ServiceSerializer, epoch_to_datetime, get_user_enduser_emails
-from .serviceclient import OrganizationClient, ServerError
-
-# Temporary
-from device_tool.device_tool import (
-      WebAccess,
-      VapixClient,
-      MyUsecases,
-      StandardSSLContext,
-      parse_call,
-      call_method
-   )
-from connectedservices.management.commands.device_tool import EdgeLinkAccess
-from .serviceclient import organization_arn_to_id
-
+from .serviceclient import OrganizationClient, organization_arn_to_id
 
 User = get_user_model()
 
@@ -432,7 +427,7 @@ def service_page(request, service_id):
       elif 'message' in raw:
          error = raw['message']
 
-   except TokenError as e:
+   except TokenError:
       service.oauth_token.revoked = True
       service.oauth_token.save()
       # return consent_page(service, msg = f'Error: {e}, {error}')
@@ -518,12 +513,17 @@ def edge_recording_get(request, service_id, device_id, disk_id, rec_id):
    edge recording files, and .mp4 is a more widely supported container anyway.
    """
 
-   if not os.path.isfile(mp4_name := f'{tenant.TEMP_ROOT}/{rec_id}.mp4'):
+   # Cache key is a hash of the full access tuple (not just rec_id), so a
+   # rec_id collision across services/devices can't serve a cached export
+   # without re-authorizing against the device. The user-facing filename is
+   # kept as `{rec_id}.mp4`, unrelated to the internal cache path.
+   cache_key = hashlib.sha256(f'{service_id}|{device_id}|{disk_id}|{rec_id}'.encode()).hexdigest()
+   if not os.path.isfile(mp4_name := f'{tenant.TEMP_ROOT}/{cache_key}.mp4'):
       vapix_client = get_vapix_client(service_id, device_id)
       full_name = vapix_client.ExportRecording(folder = tenant.TEMP_ROOT, disk_id = disk_id, rec_id = rec_id)
       if not run_executable(['ffmpeg', '-i', full_name, '-c', 'copy', '-map_metadata', '0', '-y', mp4_name]):
          os.remove(full_name)
-   return do_download(mp4_name)
+   return do_download(mp4_name, alt_name = f'{rec_id}.mp4')
 
 # ------------------------------------------------------------------------------
 #
@@ -669,7 +669,7 @@ def service_revoke(request, service_id):
 
    result, msg = do_revoke(service, request.user)
    if result:
-      return HttpResponse(ServiceSerializer().serialize([service], fields=()), content_type='application/json')
+      return HttpResponse(ServiceSerializer().serialize([service], fields=()), content_type='application/json')  # pylint: disable=http-response-with-content-type-json
    else:
       return HttpResponse(content = msg, status = 500)
 

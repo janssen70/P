@@ -16,7 +16,7 @@ from django.conf import settings
 from constance import config
 
 oauth = OAuth()
-_initialized = False
+_INITIALIZED = False
 
 def _ensure_registered():
    """
@@ -26,8 +26,8 @@ def _ensure_registered():
    Called at first-use rather than import time,
    because the DB isn't available during module loading.
    """
-   global _initialized
-   if _initialized:
+   global _INITIALIZED
+   if _INITIALIZED:
       return
 
    app_name = config.MANUFACTURER_SOCIALAPP_NAME
@@ -59,7 +59,7 @@ def _ensure_registered():
            'scope': 'openid offline administrator'
        },
    )
-   _initialized = True
+   _INITIALIZED = True
 
 
 def get_client():
